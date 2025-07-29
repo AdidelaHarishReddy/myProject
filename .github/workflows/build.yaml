@@ -1,5 +1,16 @@
+name: build_frontend
 on:
   push:
     branches:
     - main
-    - release/*
+    - frontend/*
+jobs:
+  - docker_build:
+       - runs on: ubuntu-latest
+           steps:
+             - name: checkout
+               uses: actions/checkout@v3
+             - name: setting buildnumber
+               run: echo "BUILD_NUMBER=${{github-run_number}}" >> $GITHUB_ENV  
+             - name: building the frontend dockerfile
+               run: docker build -t frontend:${{env.BUILD_NUMBER}}  
