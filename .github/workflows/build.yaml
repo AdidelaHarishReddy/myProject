@@ -10,7 +10,12 @@ jobs:
            steps:
              - name: checkout
                uses: actions/checkout@v3
+             - name: log in to docker hub   
+               run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
              - name: setting buildnumber
                run: echo "BUILD_NUMBER=${{github-run_number}}" >> $GITHUB_ENV  
              - name: building the frontend dockerfile
-               run: docker build -t frontend:${{env.BUILD_NUMBER}}  
+               run: docker build -t ${{secretS.DOCKERHUB_USERNAME}}/frontend:${{env.BUILD_NUMBER}}
+             - name: push to dockerhub
+               run: docker push ${{secretS.DOCKERHUB_USERNAME}}/frontend:${{env.BUILD_NUMBER}}
+               
