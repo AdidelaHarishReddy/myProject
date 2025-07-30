@@ -22,7 +22,7 @@ def send_email(subject, body, sender, recipients, password, smtp_server="smtp.gm
 if __name__ == "__main__":
     subject = "Test Notification"
     body = "This is a test email notification."
-    sender = "your_email@gmail.com"
+    sender = "@gmail.com"
     recipients = ["recipient@example.com"]  # Can be a single email or list
     password = "your_app_password"  # Use app-specific password for Gmail
 
