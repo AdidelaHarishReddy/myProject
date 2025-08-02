@@ -20,8 +20,11 @@ import random
 from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
+from rest_framework.permissions import AllowAny
 
 class UserRegisterView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
