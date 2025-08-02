@@ -4,18 +4,44 @@ on:
     branches:
     - main
     - frontend/*
+    - backend/*
 jobs:
-  - docker_build:
-       - runs on: ubuntu-latest
-           steps:
+  docker_frontend_build:
+       runs-on: ubuntu-latest
+       steps:
+              # install docker
+             - name: install docker
+                run: |
+                  curl -s https://raw.githubusercontent.com/AdidelaHarishReddy/installations/refs/heads/main/docker | bash
+               # checkout the code
              - name: checkout
-               uses: actions/checkout@v3
+               uses: actions/checkout@v4
+               # login to docker hub
              - name: log in to docker hub   
-               run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+               run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+              # setting up the build number
              - name: setting buildnumber
-               run: echo "BUILD_NUMBER=${{github-run_number}}" >> $GITHUB_ENV  
+               run: echo "BUILD_NUMBER=${{github.run_number}}" >> $GITHUB_ENV
+               # building and pushing the frontend docker image
              - name: building the frontend dockerfile
-               run: docker build -t ${{secretS.DOCKERHUB_USERNAME}}/frontend:${{env.BUILD_NUMBER}}
+               run: sudo docker build -t ${{secrets.DOCKERHUB_USERNAME}}/frontend:${{env.BUILD_NUMBER}} ./frontend/Dockerfile
              - name: push to dockerhub
-               run: docker push ${{secretS.DOCKERHUB_USERNAME}}/frontend:${{env.BUILD_NUMBER}}
-               
+               run: sudo docker push ${{secrets.DOCKERHUB_USERNAME}}/frontend:${{env.BUILD_NUMBER}}
+   # building the backend docker image and pushing it to dockerhub
+  docker_backend_build:
+       runs-on: ubuntu-latest
+       needs: docker_frontend_build
+       steps:
+             - name: depends on
+               needs: docker_frontend_build
+              # building the backend docker image and pushing it to dockerhub
+             - name: building the backend dockerfile
+               run: sudo docker build -t ${{secrets.DOCKERHUB_USERNAME}}/backend:${{env.BUILD_NUMBER}} ./backend/Dockerfile
+             - name: push to dockerhub
+               run: sudo docker push ${{secrets.DOCKERHUB_USERNAME}}/backend:${{env.BUILD_NUMBER}}
+    # checkout to localhost:8080
+  checkout to localhost:
+             - name: checkout to localhost
+               run: |
+                  
+                     
