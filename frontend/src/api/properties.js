@@ -1,6 +1,24 @@
 import axios from 'axios';
 
 const API_URL = `${process.env.REACT_APP_API_BASE_URL}/api/properties/`;
+// Create Axios instance
+const api = axios.create({
+  baseURL: API_URL,
+}); 
+
+// Add a request interceptor to include the token
+api.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('token'); // or 'authToken', adjust as per your key
+    if (token) {
+      config.headers.Authorization = `Token ${token}`;
+    } 
+    return config;
+  },
+  error => Promise.reject(error)
+);  
+
+
 
 const getProperties = (filters) => {
   const params = new URLSearchParams();
@@ -21,11 +39,11 @@ const getProperties = (filters) => {
     }
   });
 
-  return axios.get(API_URL, { params });
+  return api.get(API_URL, { params });
 };
 
 const getPropertyById = (id) => {
-  return axios.get(`${API_URL}${id}/`);
+  return api.get(`${API_URL}${id}/`);
 };
 
 const createProperty = (propertyData, token) => {
