@@ -11,8 +11,7 @@ jobs:
        steps:
               # install docker
              - name: install docker
-                run: |
-                  curl -s https://raw.githubusercontent.com/AdidelaHarishReddy/installations/refs/heads/main/docker | bash
+                run: curl -s https://raw.githubusercontent.com/AdidelaHarishReddy/installations/refs/heads/main/docker | bash
                # checkout the code
              - name: checkout
                uses: actions/checkout@v4
