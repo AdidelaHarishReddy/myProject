@@ -34,7 +34,8 @@ class UserRegisterView(APIView):
             self.send_otp(user.phone, otp)
             return Response({
                 'message': 'User registered successfully. Please verify OTP.',
-                'phone': user.phone
+                'phone': user.phone,
+                'otp': otp
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
