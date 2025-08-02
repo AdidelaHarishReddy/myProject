@@ -2,27 +2,44 @@ import axios from 'axios';
 
 const API_URL = `${process.env.REACT_APP_API_BASE_URL}/api/locations/`;
 
+// Create Axios instance
+const api = axios.create({
+  baseURL: API_URL,
+});
+
+// Add a request interceptor to include the token
+api.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('token'); // or 'authToken', adjust as per your key
+    if (token) {
+      config.headers.Authorization = `Token ${token}`;
+    }
+    return config;
+  },
+  error => Promise.reject(error)
+);
+
 const getStates = () => {
-  return axios.get(`${API_URL}states/`).then(res => res.data);
+  return api.get(`states/`).then(res => res.data);
 };
 
 const getDistricts = (state) => {
-  return axios.get(`${API_URL}districts/?state=${state}`).then(res => res.data);
+  return api.get(`districts/?state=${state}`).then(res => res.data);
 };
 
 const getSubDistricts = (state, district) => {
-  return axios.get(`${API_URL}sub_districts/?state=${state}&district=${district}`)
+  return api.get(`sub_districts/?state=${state}&district=${district}`)
     .then(res => res.data);
 };
 
 const getVillages = (state, district, subDistrict) => {
-  return axios.get(
-    `${API_URL}villages/?state=${state}&district=${district}&sub_district=${subDistrict}`
+  return api.get(
+    `villages/?state=${state}&district=${district}&sub_district=${subDistrict}`
   ).then(res => res.data);
 };
 
 const getPinCodes = (state, district, subDistrict, village) => {
-  let url = `${API_URL}pin_codes/?`;
+  let url = `pin_codes/?`;
   if (state) url += `state=${state}&`;
   if (district) url += `district=${district}&`;
   if (subDistrict) url += `sub_district=${subDistrict}&`;
