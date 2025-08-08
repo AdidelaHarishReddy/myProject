@@ -1,4 +1,4 @@
-name: build_frontend
+name: build_project
 on:
   push:
     branches:
