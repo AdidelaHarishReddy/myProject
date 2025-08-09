@@ -40,7 +40,23 @@ jobs:
                run: sudo docker push ${{secrets.DOCKERHUB_USERNAME}}/backend:${{env.BUILD_NUMBER}}
     # checkout to localhost:8080
   checkout to localhost:
-             - name: checkout to localhost
-               run: |
+             deploy_to_aws:
+    runs-on: ubuntu-latest
+    needs: docker_backend_build
+    steps:
+      - name: Deploy to AWS EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          script: |
+            docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOKEN }}"
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ env.BUILD_NUMBER }}
+            docker stop frontend backend || true
+            docker rm frontend backend || true
+            docker run -d --name frontend -p 80:80 ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }}
+            docker run -d --name backend -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ env.BUILD_NUMBER }}
                   
                      
