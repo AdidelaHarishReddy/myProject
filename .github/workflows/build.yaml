@@ -54,9 +54,11 @@ jobs:
             docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOKEN }}"
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }}
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ env.BUILD_NUMBER }}
+            docker pull harishreddy1234/db:v1.1
             docker stop frontend backend || true
             docker rm frontend backend || true
-            docker run -d --name frontend -p 80:80 ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }}
-            docker run -d --name backend -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ env.BUILD_NUMBER }}
+            docker run -d --name db -p 5432:5432 --network projectnetwork harishreddy1234/db:v1.1
+            docker run -d --name frontend -p 3000:80 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }}
+            docker run -d --name backend -p 8000:8000 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ env.BUILD_NUMBER }}
                   
                      
