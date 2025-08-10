@@ -66,12 +66,15 @@ jobs:
       - name: docker pull frontend
         run: |
           sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
-      - name: docker pull backend
-        run: |
-          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
       - name: docker pull db
         run: |
           sudo docker pull harishreddy1234/db:v1.1
+      - name: docker pull backend
+        run: |
+          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
+      # - name: docker pull db
+      #   run: |
+      #     sudo docker pull harishreddy1234/db:v1.1
       - name: docker stop frontend and backend containers
         run: |
           sudo docker stop frontend backend || true
