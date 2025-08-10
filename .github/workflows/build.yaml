@@ -64,7 +64,7 @@ jobs:
             docker stop frontend backend || true
             docker rm frontend backend || true
             docker network create projectnetwork || true
-            # public_ip=$(curl -s http://checkip.amazonaws.com)
+            public_ip=$(curl -s http://checkip.amazonaws.com)
             docker run -d --name db -p 5432:5432 --network projectnetwork harishreddy1234/db:v1.1
             docker run -d --name frontend -p 3000:80 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
             docker run -d --name backend -p 8000:8000 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
