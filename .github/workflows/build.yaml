@@ -23,7 +23,7 @@ jobs:
         run: echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
       # building and pushing the frontend docker image
       - name: building the frontend dockerfile
-        run: sudo docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }} ./frontend
+        run: sudo docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }} ./frontend -e REACT_APP_API_BASE_URL=http://:${{ secrets.AWS_HOST }}:8000
       - name: push to dockerhub
         run: sudo docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }}
 
