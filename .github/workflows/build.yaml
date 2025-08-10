@@ -61,32 +61,32 @@ jobs:
         run: curl -s https://raw.githubusercontent.com/AdidelaHarishReddy/installations/refs/heads/main/docker | bash
       - name: docker login
         run: |
-          docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOCKEN }}"
+          sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOCKEN }}"
       - name: docker pull frontend
         run: |
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
+          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
       - name: docker pull backend
         run: |
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
+          sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
       - name: docker pull db
         run: |
-          docker pull harishreddy1234/db:v1.1
+          sudo docker pull harishreddy1234/db:v1.1
       - name: docker stop frontend and backend containers
         run: |
-          docker stop frontend backend || true
+          sudo docker stop frontend backend || true
       - name: cleanup containers
         run: |
-          docker rm frontend backend || true
+          sudo docker rm frontend backend || true
       - name: creating bridge network
         run: |
-          docker network create projectnetwork || true
+          sudo docker network create projectnetwork || true
       - name: run container db
         run: |
           # public_ip=$(curl -s http://checkip.amazonaws.com)
-          docker run -d --name db -p 5432:5432 --network projectnetwork harishreddy1234/db:v1.1
+          sudo docker run -d --name db -p 5432:5432 --network projectnetwork harishreddy1234/db:v1.1
       - name: run container frontend
         run: |
-          docker run -d --name frontend -p 3000:80 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
+          sudo docker run -d --name frontend -p 3000:80 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
       - name: run container backend
         run: |
-          docker run -d --name backend -p 8000:8000 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
+          sudo docker run -d --name backend -p 8000:8000 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
