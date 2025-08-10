@@ -7,40 +7,41 @@ on:
     - backend/*
 jobs:
   docker_frontend_build:
-       runs-on: ubuntu-latest
-       steps:
-              # install docker
-             - name: install docker
-                run: curl -s https://raw.githubusercontent.com/AdidelaHarishReddy/installations/refs/heads/main/docker | bash
-               # checkout the code
-             - name: checkout
-               uses: actions/checkout@v4
-               # login to docker hub
-             - name: log in to docker hub   
-               run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-              # setting up the build number
-             - name: setting buildnumber
-               run: echo "BUILD_NUMBER=${{github.run_number}}" >> $GITHUB_ENV
-               # building and pushing the frontend docker image
-             - name: building the frontend dockerfile
-               run: sudo docker build -t ${{secrets.DOCKERHUB_USERNAME}}/frontend:${{env.BUILD_NUMBER}} ./frontend/Dockerfile
-             - name: push to dockerhub
-               run: sudo docker push ${{secrets.DOCKERHUB_USERNAME}}/frontend:${{env.BUILD_NUMBER}}
-   # building the backend docker image and pushing it to dockerhub
+    runs-on: ubuntu-latest
+    steps:
+      # install docker
+      - name: install docker
+        run: curl -s https://raw.githubusercontent.com/AdidelaHarishReddy/installations/refs/heads/main/docker | bash
+      # checkout the code
+      - name: checkout
+        uses: actions/checkout@v4
+      # login to docker hub
+      - name: log in to docker hub   
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      # setting up the build number
+      - name: setting buildnumber
+        run: echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
+      # building and pushing the frontend docker image
+      - name: building the frontend dockerfile
+        run: sudo docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }} ./frontend
+      - name: push to dockerhub
+        run: sudo docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }}
+
   docker_backend_build:
-       runs-on: ubuntu-latest
-       needs: docker_frontend_build
-       steps:
-             - name: depends on
-               needs: docker_frontend_build
-              # building the backend docker image and pushing it to dockerhub
-             - name: building the backend dockerfile
-               run: sudo docker build -t ${{secrets.DOCKERHUB_USERNAME}}/backend:${{env.BUILD_NUMBER}} ./backend/Dockerfile
-             - name: push to dockerhub
-               run: sudo docker push ${{secrets.DOCKERHUB_USERNAME}}/backend:${{env.BUILD_NUMBER}}
-    # checkout to localhost:8080
-  checkout to localhost:
-             deploy_to_aws:
+    runs-on: ubuntu-latest
+    needs: docker_frontend_build
+    steps:
+      # building the backend docker image and pushing it to dockerhub
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: log in to docker hub   
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      - name: building the backend dockerfile
+        run: sudo docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ env.BUILD_NUMBER }} ./backend
+      - name: push to dockerhub
+        run: sudo docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ env.BUILD_NUMBER }}
+
+  deploy_to_aws:
     runs-on: ubuntu-latest
     needs: docker_backend_build
     steps:
@@ -57,8 +58,10 @@ jobs:
             docker pull harishreddy1234/db:v1.1
             docker stop frontend backend || true
             docker rm frontend backend || true
+            docker network create projectnetwork || true
+            public_ip=$(curl -s http://checkip.amazonaws.com)
             docker run -d --name db -p 5432:5432 --network projectnetwork harishreddy1234/db:v1.1
-            docker run -d --name frontend -p 3000:80 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }}
+            docker run -d --name frontend -p 3000:80 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ env.BUILD_NUMBER }} -e REACT_APP_API_BASE_URL=http://:${{ secrets.AWS_HOST }}:8000
             docker run -d --name backend -p 8000:8000 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ env.BUILD_NUMBER }}
                   
                      
