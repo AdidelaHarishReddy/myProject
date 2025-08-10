@@ -46,51 +46,88 @@ jobs:
       - name: push to dockerhub
         run: sudo docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_frontend_build.outputs.build_number }}
 
-  deploy_to_aws:
-    runs-on: ubuntu-latest
-    needs: docker_backend_build
-    steps:
-      - name: Deploy to AWS EC2
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.AWS_HOST }}
-          username: ${{ secrets.AWS_USER }}
-          key: ${{ secrets.AWS_SSH_KEY }}
-          port: 22
-          # install docker
-      - name: install docker
-        run: curl -s https://raw.githubusercontent.com/AdidelaHarishReddy/installations/refs/heads/main/docker | bash
-      - name: docker login
-        run: |
-          sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOCKEN }}"
-      - name: docker pull frontend
-        run: |
+  # deploy_to_aws:
+  #   runs-on: ubuntu-latest
+  #   needs: docker_backend_build
+  #   steps:
+  #     - name: Deploy to AWS EC2
+  #       uses: appleboy/ssh-action@v1.2.0
+  #       with:
+  #         host: ${{ secrets.AWS_HOST }}
+  #         username: ${{ secrets.AWS_USER }}
+  #         key: ${{ secrets.AWS_SSH_KEY }}
+  #         port: 22
+  #         # install docker
+  #     - name: install docker
+  #       run: curl -s https://raw.githubusercontent.com/AdidelaHarishReddy/installations/refs/heads/main/docker | bash
+  #     - name: docker login
+  #       run: |
+  #         sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOCKEN }}"
+  #     - name: docker pull frontend
+  #       run: |
+  #         sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
+  #     - name: docker pull db
+  #       run: |
+  #         sudo docker pull harishreddy1234/db:v1.1
+  #     - name: docker pull backend
+  #       run: |
+  #         sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
+  #     # - name: docker pull db
+  #     #   run: |
+  #     #     sudo docker pull harishreddy1234/db:v1.1
+  #     - name: docker stop frontend and backend containers
+  #       run: |
+  #         sudo docker stop frontend backend || true
+  #     - name: cleanup containers
+  #       run: |
+  #         sudo docker rm frontend backend || true
+  #     - name: creating bridge network
+  #       run: |
+  #         sudo docker network create projectnetwork || true
+  #     - name: run container db
+  #       run: |
+  #         # public_ip=$(curl -s http://checkip.amazonaws.com)
+  #         sudo docker run -d --name db -p 5432:5432 --network projectnetwork harishreddy1234/db:v1.1
+  #     - name: run container frontend
+  #       run: |
+  #         sudo docker run -d --name frontend -p 3000:80 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
+  #     - name: run container backend
+  #       run: |
+  #         sudo docker run -d --name backend -p 8000:8000 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
+
+deploy_to_aws:
+  runs-on: ubuntu-latest
+  needs: docker_backend_build
+  steps:
+    - name: Deploy to AWS EC2
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.AWS_HOST }}
+        username: ${{ secrets.AWS_USER }}
+        key: ${{ secrets.AWS_SSH_KEY }}
+        port: 22
+        script: |
+          # Install Docker if not installed
+          if ! command -v docker &> /dev/null; then
+            curl -fsSL https://get.docker.com | sh
+          fi
+
+          # Docker login
+          echo "${{ secrets.DOCKERHUB_TOCKEN }}" | sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+          # Pull images
           sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
-      - name: docker pull db
-        run: |
           sudo docker pull harishreddy1234/db:v1.1
-      - name: docker pull backend
-        run: |
           sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
-      # - name: docker pull db
-      #   run: |
-      #     sudo docker pull harishreddy1234/db:v1.1
-      - name: docker stop frontend and backend containers
-        run: |
-          sudo docker stop frontend backend || true
-      - name: cleanup containers
-        run: |
-          sudo docker rm frontend backend || true
-      - name: creating bridge network
-        run: |
+
+          # Stop and remove old containers if they exist
+          sudo docker stop frontend backend db || true
+          sudo docker rm frontend backend db || true
+
+          # Create network
           sudo docker network create projectnetwork || true
-      - name: run container db
-        run: |
-          # public_ip=$(curl -s http://checkip.amazonaws.com)
+
+          # Run containers
           sudo docker run -d --name db -p 5432:5432 --network projectnetwork harishreddy1234/db:v1.1
-      - name: run container frontend
-        run: |
           sudo docker run -d --name frontend -p 3000:80 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
-      - name: run container backend
-        run: |
           sudo docker run -d --name backend -p 8000:8000 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
