@@ -6,17 +6,43 @@ import { useNavigate } from 'react-router-dom';
 const PropertyCard = ({ property, onShortlist, onRemoveShortlist, isShortlisted }) => {
   const navigate = useNavigate();
 
+  // Add safety checks for property data
+  const safeProperty = property || {};
+  const images = safeProperty.images || [];
+  const location = safeProperty.location || {};
+  const title = safeProperty.title || 'Untitled Property';
+  const price = safeProperty.price || 0;
+  const areaDisplay = safeProperty.area_display || 'Area not specified';
+
   const handleShortlistClick = (e) => {
     e.stopPropagation();
     if (isShortlisted) {
-      onRemoveShortlist(property.id);
+      onRemoveShortlist(safeProperty.id);
     } else {
-      onShortlist(property.id);
+      onShortlist(safeProperty.id);
     }
   };
 
   const handleCardClick = () => {
-    navigate(`/property/${property.id}`);
+    if (safeProperty.id) {
+      navigate(`/property/${safeProperty.id}`);
+    }
+  };
+
+  // Get the first image or use placeholder
+  const getImageUrl = () => {
+    if (images && images.length > 0 && images[0] && images[0].image) {
+      return images[0].image;
+    }
+    return '/placeholder.jpg';
+  };
+
+  // Get location display text
+  const getLocationText = () => {
+    if (location && location.district && location.state) {
+      return `${location.district}, ${location.state}`;
+    }
+    return 'Location not specified';
   };
 
   return (
@@ -35,13 +61,16 @@ const PropertyCard = ({ property, onShortlist, onRemoveShortlist, isShortlisted 
       <CardMedia
         component="img"
         height="160"
-        image={property.images[0]?.image || '/placeholder.jpg'}
-        alt={property.title}
+        image={getImageUrl()}
+        alt={title}
+        onError={(e) => {
+          e.target.src = '/placeholder.jpg';
+        }}
       />
       <CardContent sx={{ flexGrow: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Typography variant="h6" component="div">
-            {property.title}
+            {title}
           </Typography>
           <IconButton 
             onClick={handleShortlistClick}
@@ -53,13 +82,13 @@ const PropertyCard = ({ property, onShortlist, onRemoveShortlist, isShortlisted 
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
           <LocationOn fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-          {property.location.district}, {property.location.state}
+          {getLocationText()}
         </Typography>
         <Typography variant="h6" sx={{ mt: 1, color: '#4267B2' }}>
-          ₹{property.price.toLocaleString()}
+          ₹{price.toLocaleString()}
         </Typography>
         <Typography variant="body2" sx={{ mt: 1 }}>
-          {property.area_display}
+          {areaDisplay}
         </Typography>
       </CardContent>
     </Card>

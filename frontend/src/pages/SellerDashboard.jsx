@@ -57,12 +57,37 @@ const SellerDashboard = () => {
     setLoading(true);
     propertyAPI.getProperties({}, token)
       .then(response => {
-        setProperties(response.data);
+        console.log('Properties response:', response.data);
+        
+        // Ensure each property has the required structure
+        const formattedProperties = (response.data || []).map(property => ({
+          ...property,
+          // Ensure images array exists
+          images: property.images || [],
+          // Ensure location object exists
+          location: property.location || {
+            state: 'Unknown',
+            district: 'Unknown',
+            sub_district: 'Unknown',
+            village: 'Unknown',
+            pin_code: 'Unknown'
+          },
+          // Ensure other required fields exist
+          title: property.title || 'Untitled Property',
+          price: property.price || 0,
+          area: property.area || 0,
+          area_display: property.area_display || 'Area not specified',
+          property_type: property.property_type || 'UNKNOWN'
+        }));
+        
+        setProperties(formattedProperties);
         setLoading(false);
       })
       .catch(error => {
         console.error('Error fetching properties:', error);
         setLoading(false);
+        // Set empty array to prevent errors
+        setProperties([]);
       });
   };
 
@@ -246,7 +271,33 @@ const SellerDashboard = () => {
 
     propertyAPI.createProperty(formData, token)
       .then(response => {
-        setProperties([response.data, ...properties]);
+        console.log('Property creation response:', response.data);
+        
+        // Ensure the response data has the required structure
+        const newPropertyData = {
+          ...response.data,
+          // Ensure images array exists
+          images: response.data.images || [],
+          // Ensure location object exists
+          location: response.data.location || {
+            state: newProperty.state,
+            district: newProperty.district,
+            sub_district: newProperty.sub_district,
+            village: newProperty.village,
+            pin_code: newProperty.pin_code
+          },
+          // Ensure other required fields exist
+          title: response.data.title || newProperty.title,
+          price: response.data.price || newProperty.price,
+          area: response.data.area || newProperty.area,
+          area_display: response.data.area_display || `${newProperty.area} ${getAreaConfig().unit}`,
+          property_type: response.data.property_type || newProperty.property_type
+        };
+        
+        // Add the new property to the list
+        setProperties([newPropertyData, ...properties]);
+        
+        // Reset form and close dialog
         setOpenDialog(false);
         setNewProperty({
           property_type: 'AGRICULTURE',

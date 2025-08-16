@@ -20,7 +20,7 @@ api.interceptors.request.use(
 
 
 
-const getProperties = (filters) => {
+const getProperties = (filters, token) => {
   const params = new URLSearchParams();
   
   Object.keys(filters).forEach(key => {
@@ -39,7 +39,14 @@ const getProperties = (filters) => {
     }
   });
 
-  return api.get(API_URL, { params });
+  const config = {};
+  if (token) {
+    config.headers = {
+      'Authorization': `Token ${token}`
+    };
+  }
+
+  return api.get('', { params, ...config });
 };
 
 const getPropertyById = (id) => {
