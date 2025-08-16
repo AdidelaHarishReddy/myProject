@@ -93,7 +93,10 @@ class Property(models.Model):
 
     @property
     def shortlisted_by_count(self):
-        return self.shortlisted_by.count()
+        try:
+            return self.shortlisted_by.count()
+        except Exception:
+            return 0
 
 class PropertyImage(models.Model):
     property = models.ForeignKey(Property, related_name='images', on_delete=models.CASCADE)

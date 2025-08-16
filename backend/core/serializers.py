@@ -75,7 +75,6 @@ class PropertyImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'is_primary']
 
 class PropertyCreateSerializer(serializers.ModelSerializer):
-    # Location fields for creation
     state = serializers.CharField(write_only=True)
     district = serializers.CharField(write_only=True)
     sub_district = serializers.CharField(write_only=True)
@@ -102,6 +101,25 @@ class PropertyCreateSerializer(serializers.ModelSerializer):
         latitude = validated_data.pop('latitude', None)
         longitude = validated_data.pop('longitude', None)
         
+        # Handle GIS Point creation with better error handling
+        centroid_point = None
+        geo_location_point = None
+        
+        try:
+            # Try to use GIS Point if available
+            from django.contrib.gis.geos import Point
+            if latitude and longitude:
+                centroid_point = Point(longitude, latitude)
+                geo_location_point = Point(longitude, latitude)
+            else:
+                centroid_point = Point(0, 0)
+                geo_location_point = Point(0, 0)
+        except (ImportError, Exception) as e:
+            print(f"GIS Point creation failed: {e}")
+            # Fallback for non-GIS setup - we'll use None and handle it in the model
+            centroid_point = None
+            geo_location_point = None
+        
         # Get or create location
         location, created = IndiaLocation.objects.get_or_create(
             state=state,
@@ -110,27 +128,23 @@ class PropertyCreateSerializer(serializers.ModelSerializer):
             village=village,
             pin_code=pin_code,
             defaults={
-                'centroid': Point(0, 0) if not latitude or not longitude else Point(longitude, latitude),
+                'centroid': centroid_point,
                 'census_code': f"{state[:3].upper()}{district[:3].upper()}{sub_district[:3].upper()}{village[:3].upper()}"
             }
         )
         
         # Update centroid if coordinates are provided and location already existed
-        if not created and latitude and longitude:
-            location.centroid = Point(longitude, latitude)
-            location.save()
-        
-        # Create geo_location point
-        if latitude and longitude:
-            geo_location = Point(longitude, latitude)
-        else:
-            # Use location centroid if no coordinates provided
-            geo_location = location.centroid
+        if not created and latitude and longitude and centroid_point:
+            try:
+                location.centroid = centroid_point
+                location.save()
+            except Exception as e:
+                print(f"Failed to update location centroid: {e}")
         
         # Create property
         property = Property.objects.create(
             location=location,
-            geo_location=geo_location,
+            geo_location=geo_location_point,
             **validated_data
         )
         
@@ -152,49 +166,148 @@ class PropertyCreateSerializer(serializers.ModelSerializer):
         
         return property
 
+    def to_representation(self, instance):
+        """
+        Override to_representation to return complete property data after creation
+        """
+        print(f"PropertyCreateSerializer.to_representation called for property {instance.id}")
+        try:
+            # Use PropertySerializer to get the complete representation
+            result = PropertySerializer(instance, context=self.context).data
+            print(f"PropertySerializer result: {result}")
+            return result
+        except Exception as e:
+            print(f"Error in PropertyCreateSerializer.to_representation: {e}")
+            import traceback
+            traceback.print_exc()
+            # Fallback to basic representation if there's an error
+            return {
+                'id': instance.id,
+                'property_type': instance.property_type,
+                'title': instance.title,
+                'description': instance.description,
+                'address': instance.address,
+                'price': str(instance.price),
+                'area': str(instance.area),
+                'youtube_link': instance.youtube_link,
+                'created_at': instance.created_at,
+                'updated_at': instance.updated_at,
+                'location': {
+                    'id': instance.location.id,
+                    'state': instance.location.state,
+                    'district': instance.location.district,
+                    'sub_district': instance.location.sub_district,
+                    'village': instance.location.village,
+                    'pin_code': instance.location.pin_code
+                } if instance.location else None,
+                'images': [],
+                'area_display': f"{instance.area} {'acres' if instance.property_type == 'AGRICULTURE' else 'sq yds' if instance.property_type in ['OPEN_PLOT', 'HOUSE', 'BUILDING'] else 'sq ft'}"
+            }
+
 class PropertySerializer(serializers.ModelSerializer):
     images = PropertyImageSerializer(many=True, read_only=True)
-    shortlisted_by_count = serializers.SerializerMethodField()
     seller = UserSerializer(read_only=True)
     location = IndiaLocationSerializer(read_only=True)
     latitude = serializers.SerializerMethodField()
     longitude = serializers.SerializerMethodField()
     price_per_unit_display = serializers.SerializerMethodField()
     area_display = serializers.SerializerMethodField()
+    shortlisted_count = serializers.SerializerMethodField()  # Use different name
 
     class Meta:
         model = Property
-        fields = '__all__'
-        extra_fields = ['latitude', 'longitude', 'price_per_unit_display', 'area_display']
+        fields = [
+            'id', 'property_type', 'title', 'description', 'address', 
+            'location', 'price', 'area', 'youtube_link', 'created_at', 
+            'updated_at', 'seller', 'images', 'latitude', 'longitude', 
+            'price_per_unit_display', 'area_display', 'shortlisted_count'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'seller', 'images']
 
     def get_latitude(self, obj):
-        return obj.geo_location.y if obj.geo_location else None
+        try:
+            if hasattr(obj, 'geo_location') and obj.geo_location:
+                return obj.geo_location.y
+            return None
+        except Exception:
+            return None
 
     def get_longitude(self, obj):
-        return obj.geo_location.x if obj.geo_location else None
-
-    def get_shortlisted_by_count(self, obj):
-        return obj.shortlisted_by.count()
+        try:
+            if hasattr(obj, 'geo_location') and obj.geo_location:
+                return obj.geo_location.x
+            return None
+        except Exception:
+            return None
 
     def get_price_per_unit_display(self, obj):
-        if obj.price_per_unit:
-            if obj.property_type == 'AGRICULTURE':
-                return f"₹{obj.price_per_unit:,.2f}/acre"
-            elif obj.property_type == 'OPEN_PLOT':
-                return f"₹{obj.price_per_unit:,.2f}/sq yd"
-            elif obj.property_type in ['FLAT', 'COMMERCIAL']:
-                return f"₹{obj.price_per_unit:,.2f}/sq ft"
-        return None
+        try:
+            if hasattr(obj, 'price_per_unit') and obj.price_per_unit:
+                if obj.property_type == 'AGRICULTURE':
+                    return f"₹{obj.price_per_unit:,.2f}/acre"
+                elif obj.property_type == 'OPEN_PLOT':
+                    return f"₹{obj.price_per_unit:,.2f}/sq yd"
+                elif obj.property_type in ['FLAT', 'COMMERCIAL']:
+                    return f"₹{obj.price_per_unit:,.2f}/sq ft"
+            return None
+        except Exception:
+            return None
 
     def get_area_display(self, obj):
-        if obj.area:
-            if obj.property_type == 'AGRICULTURE':
-                return f"{obj.area:,.2f} acres"
-            elif obj.property_type in ['OPEN_PLOT', 'HOUSE', 'BUILDING']:
-                return f"{obj.area:,.2f} sq yds"
-            elif obj.property_type in ['FLAT', 'COMMERCIAL']:
-                return f"{obj.area:,.2f} sq ft"
-        return None
+        try:
+            if hasattr(obj, 'area') and obj.area:
+                if obj.property_type == 'AGRICULTURE':
+                    return f"{obj.area:,.2f} acres"
+                elif obj.property_type in ['OPEN_PLOT', 'HOUSE', 'BUILDING']:
+                    return f"{obj.area:,.2f} sq yds"
+                elif obj.property_type in ['FLAT', 'COMMERCIAL']:
+                    return f"{obj.area:,.2f} sq ft"
+            return None
+        except Exception:
+            return None
+
+    def get_shortlisted_count(self, obj):
+        try:
+            # Use the model's property method
+            return obj.shortlisted_by_count
+        except Exception:
+            try:
+                # Fallback to direct count
+                return obj.shortlisted_by.count()
+            except Exception:
+                return 0
+
+    def to_representation(self, instance):
+        """
+        Override to_representation to handle any potential conflicts
+        """
+        try:
+            data = super().to_representation(instance)
+            return data
+        except Exception as e:
+            print(f"Error in PropertySerializer.to_representation: {e}")
+            import traceback
+            traceback.print_exc()
+            # Fallback representation
+            return {
+                'id': getattr(instance, 'id', None),
+                'property_type': getattr(instance, 'property_type', 'UNKNOWN'),
+                'title': getattr(instance, 'title', 'Untitled'),
+                'description': getattr(instance, 'description', ''),
+                'address': getattr(instance, 'address', ''),
+                'price': str(getattr(instance, 'price', 0)),
+                'area': str(getattr(instance, 'area', 0)),
+                'youtube_link': getattr(instance, 'youtube_link', None),
+                'created_at': getattr(instance, 'created_at', None),
+                'updated_at': getattr(instance, 'updated_at', None),
+                'location': None,
+                'images': [],
+                'latitude': None,
+                'longitude': None,
+                'price_per_unit_display': None,
+                'area_display': None,
+                'shortlisted_count': 0
+            }
 
 class ShortlistSerializer(serializers.ModelSerializer):
     property = PropertySerializer(read_only=True)

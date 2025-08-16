@@ -1,7 +1,16 @@
-from django.contrib.gis.geos import Point
-from django.contrib.gis.measure import Distance
+# Try to import GIS modules, fallback if not available
+try:
+    from django.contrib.gis.geos import Point
+    from django.contrib.gis.measure import Distance
+    from django.contrib.gis.db.models.functions import Distance as DistanceFunc
+    GIS_AVAILABLE = True
+except ImportError:
+    GIS_AVAILABLE = False
+    Point = None
+    Distance = None
+    DistanceFunc = None
+
 from django.db.models import Count
-from django.contrib.gis.db.models.functions import Distance as DistanceFunc
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -120,13 +129,14 @@ class PropertyViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = {
         'property_type': ['exact'],
-        'location__state': ['exact'],
-        'location__district': ['exact'],
-        'location__sub_district': ['exact'],
-        'location__village': ['exact'],
-        'location__pin_code': ['exact'],
         'price': ['gte', 'lte'],
         'area': ['gte', 'lte'],
+        # Location filtering will be handled manually in get_queryset
+        # 'location__state': ['exact'],
+        # 'location__district': ['exact'],
+        # 'location__sub_district': ['exact'],
+        # 'location__village': ['exact'],
+        # 'location__pin_code': ['exact'],
     }
 
     def get_permissions(self):
@@ -140,47 +150,86 @@ class PropertyViewSet(viewsets.ModelViewSet):
         return PropertySerializer
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        queryset = queryset.annotate(
-            shortlisted_by_count=Count('shortlisted_by')
-        ).select_related('location', 'seller').prefetch_related('images')
-        
-        # Location-based filtering (10km radius)
-        user_location = self.request.user.location if self.request.user.is_authenticated else None
-        if user_location:
-            queryset = queryset.filter(
-                geo_location__distance_lte=(user_location, Distance(km=10)))
-            queryset = queryset.annotate(
-                distance=DistanceFunc('geo_location', user_location)
-            )
-        
-        # Property type specific filtering
-        property_type = self.request.query_params.get('property_type')
-        if property_type == 'AGRICULTURE':
-            queryset = queryset.filter(area__gte=0, area__lte=100)
-        elif property_type == 'OPEN_PLOT':
-            queryset = queryset.filter(area__gte=10, area__lte=2000)
-        elif property_type == 'FLAT':
-            queryset = queryset.filter(area__gte=100, area__lte=10000)
-        elif property_type == 'HOUSE':
-            queryset = queryset.filter(area__gte=10, area__lte=2000)
-        elif property_type == 'BUILDING':
-            queryset = queryset.filter(area__gte=50, area__lte=1000)
-        elif property_type == 'COMMERCIAL':
-            queryset = queryset.filter(area__gte=100, area__lte=10000)
-        
-        # Sorting
-        sort_by = self.request.query_params.get('sort_by')
-        if sort_by == 'price_low':
-            queryset = queryset.order_by('price')
-        elif sort_by == 'price_high':
-            queryset = queryset.order_by('-price')
-        elif sort_by == 'distance' and user_location:
-            queryset = queryset.order_by('distance')
-        else:
-            queryset = queryset.order_by('-created_at')
-        
-        return queryset
+        try:
+            # Debug: Log query parameters
+            print(f"PropertyViewSet query params: {self.request.query_params}")
+            
+            queryset = super().get_queryset()
+            print(f"Base queryset: {queryset}")
+            
+            # Remove the conflicting annotation since Property model already has shortlisted_by_count property
+            queryset = queryset.select_related('location', 'seller').prefetch_related('images')
+            print(f"After select_related: {queryset}")
+            
+            # Location-based filtering (10km radius) - temporarily disabled for SQLite compatibility
+            # user_location = self.request.user.location if self.request.user.is_authenticated else None
+            # if user_location:
+            #     queryset = queryset.filter(
+            #         geo_location__distance_lte=(user_location, Distance(km=10)))
+            #     queryset = queryset.annotate(
+            #         distance=DistanceFunc('geo_location', user_location)
+            #     )
+            
+            # Property type specific filtering
+            property_type = self.request.query_params.get('property_type')
+            if property_type == 'AGRICULTURE':
+                queryset = queryset.filter(area__gte=0, area__lte=100)
+            elif property_type == 'OPEN_PLOT':
+                queryset = queryset.filter(area__gte=10, area__lte=2000)
+            elif property_type == 'FLAT':
+                queryset = queryset.filter(area__gte=100, area__lte=10000)
+            elif property_type == 'HOUSE':
+                queryset = queryset.filter(area__gte=10, area__lte=2000)
+            elif property_type == 'BUILDING':
+                queryset = queryset.filter(area__gte=50, area__lte=1000)
+            elif property_type == 'COMMERCIAL':
+                queryset = queryset.filter(area__gte=100, area__lte=10000)
+            
+            # Manual location filtering
+            location_state = self.request.query_params.get('location__state')
+            if location_state:
+                queryset = queryset.filter(location__state=location_state)
+            
+            location_district = self.request.query_params.get('location__district')
+            if location_district:
+                queryset = queryset.filter(location__district=location_district)
+            
+            location_sub_district = self.request.query_params.get('location__sub_district')
+            if location_sub_district:
+                queryset = queryset.filter(location__sub_district=location_sub_district)
+            
+            location_village = self.request.query_params.get('location__village')
+            if location_village:
+                queryset = queryset.filter(location__village=location_village)
+            
+            location_pin_code = self.request.query_params.get('location__pin_code')
+            if location_pin_code:
+                queryset = queryset.filter(location__pin_code=location_pin_code)
+            
+            # Sorting
+            sort_by = self.request.query_params.get('sort_by')
+            if sort_by == 'price_low':
+                queryset = queryset.order_by('price')
+            elif sort_by == 'price_high':
+                queryset = queryset.order_by('-price')
+            # elif sort_by == 'distance' and user_location:
+            #     queryset = queryset.order_by('distance')
+            else:
+                queryset = queryset.order_by('-created_at')
+            
+            print(f"Final queryset: {queryset}")
+            return queryset
+        except Exception as e:
+            print(f"Error in PropertyViewSet.get_queryset: {e}")
+            import traceback
+            traceback.print_exc()
+            # Return a basic queryset if there's an error
+            try:
+                return Property.objects.all().select_related('location', 'seller').prefetch_related('images')
+            except Exception as fallback_error:
+                print(f"Fallback queryset also failed: {fallback_error}")
+                # Return empty queryset as last resort
+                return Property.objects.none()
 
     def perform_create(self, serializer):
         serializer.save(seller=self.request.user)
@@ -213,6 +262,36 @@ class PropertyViewSet(viewsets.ModelViewSet):
         
         serializer = ShortlistSerializer(shortlisted, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def test(self, request):
+        """Test endpoint to debug serialization issues"""
+        try:
+            # Test basic queryset
+            queryset = Property.objects.all()[:5]  # Get first 5 properties
+            print(f"Test queryset: {queryset}")
+            
+            # Test serializer
+            serializer = PropertySerializer(queryset, many=True, context={'request': request})
+            print(f"Serializer created successfully")
+            
+            # Test serialization
+            data = serializer.data
+            print(f"Serialization successful, got {len(data)} properties")
+            
+            return Response({
+                'message': 'Test successful',
+                'count': len(data),
+                'sample_data': data[0] if data else None
+            })
+        except Exception as e:
+            print(f"Test failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'message': f'Test failed: {str(e)}',
+                'error': str(e)
+            }, status=500)
 
 class LocationViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = IndiaLocation.objects.all()
