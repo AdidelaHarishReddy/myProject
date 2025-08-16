@@ -1,7 +1,10 @@
 import React from 'react';
 import { Card, CardMedia, CardContent, Typography, IconButton, Box } from '@mui/material';
-import { Favorite, FavoriteBorder, LocationOn } from '@mui/icons-material';
+import { Favorite, FavoriteBorder, LocationOn, Image } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+
+// Base64 placeholder image (simple gray rectangle)
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjE2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmNWY1Ii8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OTk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlPC90ZXh0Pgo8L3N2Zz4=';
 
 const PropertyCard = ({ property, onShortlist, onRemoveShortlist, isShortlisted }) => {
   const navigate = useNavigate();
@@ -34,7 +37,7 @@ const PropertyCard = ({ property, onShortlist, onRemoveShortlist, isShortlisted 
     if (images && images.length > 0 && images[0] && images[0].image) {
       return images[0].image;
     }
-    return '/placeholder.jpg';
+    return PLACEHOLDER_IMAGE;
   };
 
   // Get location display text
@@ -64,7 +67,14 @@ const PropertyCard = ({ property, onShortlist, onRemoveShortlist, isShortlisted 
         image={getImageUrl()}
         alt={title}
         onError={(e) => {
-          e.target.src = '/placeholder.jpg';
+          console.log('Image failed to load, using placeholder');
+          e.target.src = PLACEHOLDER_IMAGE;
+        }}
+        sx={{
+          backgroundColor: '#f5f5f5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       />
       <CardContent sx={{ flexGrow: 1 }}>

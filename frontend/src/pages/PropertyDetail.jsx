@@ -3,7 +3,7 @@ import {
   Container, Grid, Typography, Box, 
   Button, IconButton, Divider, Chip, 
   Paper, Avatar, Dialog, DialogTitle, 
-  DialogContent, DialogActions, TextField 
+  DialogContent, DialogActions, TextField, CircularProgress
 } from '@mui/material';
 import { 
   LocationOn, Favorite, FavoriteBorder, 
@@ -12,6 +12,9 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import propertyAPI from '../api/properties';
 import authAPI from '../api/auth';
+
+// Base64 placeholder image (simple gray rectangle)
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjE2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmNWY1Ii8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OTk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlPC90ZXh0Pgo8L3N2Zz4=';
 
 const PropertyDetail = () => {
   const { id } = useParams();
@@ -106,17 +109,17 @@ const PropertyDetail = () => {
   const getPriceDisplay = () => {
     if (!property) return '';
     
-    switch(property.property_type) {
-      case 'AGRICULTURE':
-        return `₹${property.price_per_unit_display}`;
-      case 'OPEN_PLOT':
-        return `₹${property.price_per_unit_display}`;
-      case 'FLAT':
-      case 'COMMERCIAL':
-        return `₹${property.price_per_unit_display}`;
-      default:
-        return `₹${property.price.toLocaleString()}`;
+    // Try to use computed price_per_unit_display if available
+    if (property.price_per_unit_display) {
+      return `₹${property.price_per_unit_display}`;
     }
+    
+    // Fallback to basic price display
+    if (property.price) {
+      return `₹${property.price.toLocaleString()}`;
+    }
+    
+    return 'Price not specified';
   };
 
   if (loading) {
@@ -141,9 +144,13 @@ const PropertyDetail = () => {
         <Grid item xs={12} md={7}>
           <Box sx={{ position: 'relative', mb: 2 }}>
             <img
-              src={property.images[currentImageIndex]?.image || '/placeholder.jpg'}
+              src={property.images && property.images.length > 0 ? property.images[currentImageIndex]?.image : PLACEHOLDER_IMAGE}
               alt={property.title}
               style={{ width: '100%', height: '400px', objectFit: 'cover', borderRadius: '8px' }}
+              onError={(e) => {
+                console.log('Main image failed to load, using placeholder');
+                e.target.src = PLACEHOLDER_IMAGE;
+              }}
             />
             <Box sx={{ 
               position: 'absolute', 
@@ -177,22 +184,45 @@ const PropertyDetail = () => {
           </Box>
           
           <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', py: 1 }}>
-            {property.images.map((image, index) => (
-              <img
-                key={index}
-                src={image.image}
-                alt={`Property ${index + 1}`}
-                style={{ 
-                  width: '80px', 
-                  height: '60px', 
-                  objectFit: 'cover', 
+            {property.images && property.images.length > 0 ? (
+              property.images.map((image, index) => (
+                <img
+                  key={index}
+                  src={image.image}
+                  alt={`Property ${index + 1}`}
+                  style={{ 
+                    width: '80px', 
+                    height: '60px', 
+                    objectFit: 'cover', 
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    border: currentImageIndex === index ? '2px solid #4267B2' : '1px solid #ddd'
+                  }}
+                  onClick={() => handleImageChange(index)}
+                  onError={(e) => {
+                    console.log('Gallery image failed to load, using placeholder');
+                    e.target.src = PLACEHOLDER_IMAGE;
+                  }}
+                />
+              ))
+            ) : (
+              <Box
+                sx={{
+                  width: '80px',
+                  height: '60px',
+                  backgroundColor: '#f5f5f5',
                   borderRadius: '4px',
-                  cursor: 'pointer',
-                  border: currentImageIndex === index ? '2px solid #4267B2' : '1px solid #ddd'
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid #ddd'
                 }}
-                onClick={() => handleImageChange(index)}
-              />
-            ))}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  No Images
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Grid>
         
@@ -204,7 +234,10 @@ const PropertyDetail = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <LocationOn color="action" />
             <Typography variant="body1" sx={{ ml: 1 }}>
-              {property.location.village}, {property.location.district}, {property.location.state}
+              {property.location ? 
+                `${property.location.village || 'N/A'}, ${property.location.district || 'N/A'}, ${property.location.state || 'N/A'}` : 
+                'Location not specified'
+              }
             </Typography>
           </Box>
           
@@ -215,7 +248,7 @@ const PropertyDetail = () => {
               sx={{ fontWeight: 'bold' }}
             />
             <Chip 
-              label={property.area_display} 
+              label={property.area_display || 'Area not specified'} 
               variant="outlined" 
               sx={{ fontWeight: 'bold' }}
             />
