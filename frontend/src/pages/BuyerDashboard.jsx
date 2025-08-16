@@ -24,33 +24,48 @@ const BuyerDashboard = () => {
     sortBy: 'newest'
   });
   
+  // Ensure filters is never undefined
+  const safeFilters = filters || {
+    property_type: '',
+    priceRange: [0, 10000000],
+    areaRange: [0, 10000],
+    sortBy: 'newest'
+  };
+  
   const [isFiltering, setIsFiltering] = useState(false);
   
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchProperties();
+    fetchProperties({}); // Pass empty object to avoid undefined filters
     fetchShortlistedCount();
   }, []);
 
   // Refetch properties when filters change
   useEffect(() => {
     // Only refetch if we have properties already loaded (not on initial load)
-    if (properties.length > 0 && activeTab === 0) {
-      fetchProperties(filters);
+    // and filters is properly initialized
+    if (properties.length > 0 && activeTab === 0 && safeFilters) {
+      fetchProperties(safeFilters);
     }
-  }, [filters]);
+  }, [safeFilters, properties.length, activeTab]);
 
   const fetchProperties = (filters = {}) => {
     setLoading(true);
     
+    // Ensure filters is an object and has the required properties
+    const safeFilters = filters || {};
+    const safePriceRange = safeFilters.priceRange || [0, 10000000];
+    const safeAreaRange = safeFilters.areaRange || [0, 10000];
+    const safeSortBy = safeFilters.sortBy || 'newest';
+    
     // Check if any filters are applied
-    const hasFilters = filters.property_type || 
-                      filters.priceRange[0] > 0 || 
-                      filters.priceRange[1] < 10000000 ||
-                      filters.areaRange[0] > 0 || 
-                      filters.areaRange[1] < 10000 ||
-                      filters.sortBy !== 'newest';
+    const hasFilters = safeFilters.property_type || 
+                      safePriceRange[0] > 0 || 
+                      safePriceRange[1] < 10000000 ||
+                      safeAreaRange[0] > 0 || 
+                      safeAreaRange[1] < 10000 ||
+                      safeSortBy !== 'newest';
     
     // Set appropriate loading state
     if (hasFilters) {
@@ -62,30 +77,30 @@ const BuyerDashboard = () => {
     // Build query parameters
     const params = new URLSearchParams();
     
-    if (filters.property_type && filters.property_type !== '') {
-      params.append('property_type', filters.property_type);
+    if (safeFilters.property_type && safeFilters.property_type !== '') {
+      params.append('property_type', safeFilters.property_type);
     }
     
-    if (filters.priceRange && filters.priceRange.length === 2) {
-      if (filters.priceRange[0] > 0) {
-        params.append('price__gte', filters.priceRange[0]);
+    if (safePriceRange && safePriceRange.length === 2) {
+      if (safePriceRange[0] > 0) {
+        params.append('price__gte', safePriceRange[0]);
       }
-      if (filters.priceRange[1] < 10000000) {
-        params.append('price__lte', filters.priceRange[1]);
-      }
-    }
-    
-    if (filters.areaRange && filters.areaRange.length === 2) {
-      if (filters.areaRange[0] > 0) {
-        params.append('area__gte', filters.areaRange[0]);
-      }
-      if (filters.areaRange[1] < 10000) {
-        params.append('area__lte', filters.areaRange[1]);
+      if (safePriceRange[1] < 10000000) {
+        params.append('price__lte', safePriceRange[1]);
       }
     }
     
-    if (filters.sortBy && filters.sortBy !== 'newest') {
-      params.append('sort_by', filters.sortBy);
+    if (safeAreaRange && safeAreaRange.length === 2) {
+      if (safeAreaRange[0] > 0) {
+        params.append('area__gte', safeAreaRange[0]);
+      }
+      if (safeAreaRange[1] < 10000) {
+        params.append('area__lte', safeAreaRange[1]);
+      }
+    }
+    
+    if (safeSortBy && safeSortBy !== 'newest') {
+      params.append('sort_by', safeSortBy);
     }
     
     console.log('Filter params:', params.toString());
@@ -144,18 +159,19 @@ const BuyerDashboard = () => {
   };
 
   const handleApplyFilters = () => {
-    fetchProperties(filters);
+    fetchProperties(safeFilters);
   };
 
   const handleClearFilters = () => {
-    setFilters({
+    const clearedFilters = {
       property_type: '',
       priceRange: [0, 10000000],
       areaRange: [0, 10000],
       sortBy: 'newest'
-    });
+    };
+    setFilters(clearedFilters);
     // Fetch properties without filters
-    setTimeout(() => fetchProperties({}), 100);
+    setTimeout(() => fetchProperties(clearedFilters), 100);
   };
 
   const fetchShortlistedCount = () => {
@@ -300,7 +316,7 @@ const BuyerDashboard = () => {
             </Box>
             
             <PropertyFilters 
-              filters={filters}
+              filters={safeFilters}
               onFilterChange={handleFilterChange}
               onApplyFilters={handleApplyFilters}
               onClearFilters={handleClearFilters}
@@ -308,12 +324,12 @@ const BuyerDashboard = () => {
             />
             
             {/* Filter Status */}
-            {(filters.property_type || 
-              filters.priceRange[0] > 0 || 
-              filters.priceRange[1] < 10000000 ||
-              filters.areaRange[0] > 0 || 
-              filters.areaRange[1] < 10000 ||
-              filters.sortBy !== 'newest') && (
+            {(safeFilters.property_type || 
+              safeFilters.priceRange[0] > 0 || 
+              safeFilters.priceRange[1] < 10000000 ||
+              safeFilters.areaRange[0] > 0 || 
+              safeFilters.areaRange[1] < 10000 ||
+              safeFilters.sortBy !== 'newest') && (
               <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1, mb: 2 }}>
                 Showing filtered results
               </Typography>
@@ -340,7 +356,12 @@ const BuyerDashboard = () => {
         <Box sx={{ textAlign: 'center', mt: 4 }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
             {activeTab === 0 ? 
-              (filters.property_type || filters.priceRange[0] > 0 || filters.priceRange[1] < 10000000 || filters.areaRange[0] > 0 || filters.areaRange[1] < 10000 || filters.sortBy !== 'newest' 
+              (safeFilters.property_type || 
+               safeFilters.priceRange[0] > 0 || 
+               safeFilters.priceRange[1] < 10000000 || 
+               safeFilters.areaRange[0] > 0 || 
+               safeFilters.areaRange[1] < 10000 || 
+               safeFilters.sortBy !== 'newest' 
                 ? 'No properties match your filters. Try adjusting your search criteria.' 
                 : 'No properties found matching your criteria'
               ) : 
@@ -348,7 +369,12 @@ const BuyerDashboard = () => {
             }
           </Typography>
           
-          {activeTab === 0 && (filters.property_type || filters.priceRange[0] > 0 || filters.priceRange[1] < 10000000 || filters.areaRange[0] > 0 || filters.areaRange[1] < 10000 || filters.sortBy !== 'newest') && (
+          {activeTab === 0 && (safeFilters.property_type || 
+            safeFilters.priceRange[0] > 0 || 
+            safeFilters.priceRange[1] < 10000000 || 
+            safeFilters.areaRange[0] > 0 || 
+            safeFilters.areaRange[1] < 10000 || 
+            safeFilters.sortBy !== 'newest') && (
             <Button
               variant="outlined"
               onClick={handleClearFilters}
