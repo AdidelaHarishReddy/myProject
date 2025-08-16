@@ -157,33 +157,42 @@ class PropertyViewSet(viewsets.ModelViewSet):
             queryset = super().get_queryset()
             print(f"Base queryset: {queryset}")
             
+            # Filter by user if 'my_properties' parameter is present
+            if self.request.query_params.get('my_properties') == 'true' and self.request.user.is_authenticated:
+                queryset = queryset.filter(seller=self.request.user)
+                print(f"Filtered to user properties: {queryset}")
+            
             # Remove the conflicting annotation since Property model already has shortlisted_by_count property
             queryset = queryset.select_related('location', 'seller').prefetch_related('images')
             print(f"After select_related: {queryset}")
             
-            # Location-based filtering (10km radius) - temporarily disabled for SQLite compatibility
-            # user_location = self.request.user.location if self.request.user.is_authenticated else None
-            # if user_location:
-            #     queryset = queryset.filter(
-            #         geo_location__distance_lte=(user_location, Distance(km=10)))
-            #     queryset = queryset.annotate(
-            #         distance=DistanceFunc('geo_location', user_location)
-            #     )
-            
             # Property type specific filtering
             property_type = self.request.query_params.get('property_type')
-            if property_type == 'AGRICULTURE':
-                queryset = queryset.filter(area__gte=0, area__lte=100)
-            elif property_type == 'OPEN_PLOT':
-                queryset = queryset.filter(area__gte=10, area__lte=2000)
-            elif property_type == 'FLAT':
-                queryset = queryset.filter(area__gte=100, area__lte=10000)
-            elif property_type == 'HOUSE':
-                queryset = queryset.filter(area__gte=10, area__lte=2000)
-            elif property_type == 'BUILDING':
-                queryset = queryset.filter(area__gte=50, area__lte=1000)
-            elif property_type == 'COMMERCIAL':
-                queryset = queryset.filter(area__gte=100, area__lte=10000)
+            if property_type and property_type != '':
+                queryset = queryset.filter(property_type=property_type)
+                print(f"Filtered by property type: {property_type}")
+            
+            # Price filtering
+            price_gte = self.request.query_params.get('price__gte')
+            if price_gte and price_gte != '0':
+                queryset = queryset.filter(price__gte=price_gte)
+                print(f"Filtered by price >= {price_gte}")
+            
+            price_lte = self.request.query_params.get('price__lte')
+            if price_lte and price_lte != '10000000':
+                queryset = queryset.filter(price__lte=price_lte)
+                print(f"Filtered by price <= {price_lte}")
+            
+            # Area filtering
+            area_gte = self.request.query_params.get('area__gte')
+            if area_gte and area_gte != '0':
+                queryset = queryset.filter(area__gte=area_gte)
+                print(f"Filtered by area >= {area_gte}")
+            
+            area_lte = self.request.query_params.get('area__lte')
+            if area_lte and area_lte != '10000':
+                queryset = queryset.filter(area__lte=area_lte)
+                print(f"Filtered by area <= {area_lte}")
             
             # Manual location filtering
             location_state = self.request.query_params.get('location__state')
@@ -212,9 +221,13 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 queryset = queryset.order_by('price')
             elif sort_by == 'price_high':
                 queryset = queryset.order_by('-price')
-            # elif sort_by == 'distance' and user_location:
-            #     queryset = queryset.order_by('distance')
-            else:
+            elif sort_by == 'area_low':
+                queryset = queryset.order_by('area')
+            elif sort_by == 'area_high':
+                queryset = queryset.order_by('-area')
+            elif sort_by == 'oldest':
+                queryset = queryset.order_by('created_at')
+            else:  # newest (default)
                 queryset = queryset.order_by('-created_at')
             
             print(f"Final queryset: {queryset}")
@@ -232,7 +245,73 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 return Property.objects.none()
 
     def perform_create(self, serializer):
+        # Ensure the seller is set to the current authenticated user
         serializer.save(seller=self.request.user)
+        print(f"Property created by user: {self.request.user.username} (ID: {self.request.user.id})")
+
+    def destroy(self, request, *args, **kwargs):
+        """Custom destroy method to ensure users can only delete their own properties"""
+        try:
+            property = self.get_object()
+            
+            # Check if the current user is the seller of this property
+            if property.seller != request.user:
+                return Response({
+                    'message': 'You do not have permission to delete this property'
+                }, status=403)
+            
+            # Delete the property
+            property.delete()
+            return Response({
+                'message': 'Property deleted successfully'
+            }, status=204)
+            
+        except Exception as e:
+            print(f"Error deleting property: {e}")
+            return Response({
+                'message': 'Error deleting property',
+                'error': str(e)
+            }, status=500)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def my_properties(self, request):
+        """Get properties created by the current user"""
+        try:
+            properties = Property.objects.filter(seller=request.user).select_related('location', 'seller').prefetch_related('images').order_by('-created_at')
+            serializer = PropertySerializer(properties, many=True, context={'request': request})
+            return Response({
+                'message': 'Your properties retrieved successfully',
+                'count': properties.count(),
+                'properties': serializer.data
+            })
+        except Exception as e:
+            print(f"Error fetching user properties: {e}")
+            return Response({
+                'message': 'Error fetching your properties',
+                'error': str(e)
+            }, status=500)
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def my_property_detail(self, request, pk=None):
+        """Get a specific property created by the current user"""
+        try:
+            property = Property.objects.filter(seller=request.user, id=pk).select_related('location', 'seller').prefetch_related('images').first()
+            if not property:
+                return Response({
+                    'message': 'Property not found or you do not have permission to view it'
+                }, status=404)
+            
+            serializer = PropertySerializer(property, context={'request': request})
+            return Response({
+                'message': 'Property retrieved successfully',
+                'property': serializer.data
+            })
+        except Exception as e:
+            print(f"Error fetching user property detail: {e}")
+            return Response({
+                'message': 'Error fetching property details',
+                'error': str(e)
+            }, status=500)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def shortlist(self, request, pk=None):

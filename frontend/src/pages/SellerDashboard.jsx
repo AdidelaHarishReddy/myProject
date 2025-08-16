@@ -3,7 +3,7 @@ import {
   Container, Grid, Typography, CircularProgress, 
   Button, Box, Dialog, DialogTitle, DialogContent, 
   DialogActions, TextField, FormControl, InputLabel, 
-  Select, MenuItem, Slider 
+  Select, MenuItem, Slider, Paper 
 } from '@mui/material';
 import PropertyCard from '../components/PropertyCard';
 import propertyAPI from '../api/properties';
@@ -40,12 +40,31 @@ const SellerDashboard = () => {
   });
   const [selectedImages, setSelectedImages] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Add filter state
+  const [filters, setFilters] = useState({
+    property_type: '',
+    priceRange: [0, 10000000],
+    areaRange: [0, 10000],
+    sortBy: 'newest'
+  });
+  
+  const [isFiltering, setIsFiltering] = useState(false);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchProperties();
     fetchLocationData();
   }, []);
+
+  // Refetch properties when filters change
+  useEffect(() => {
+    // Only refetch if we have properties already loaded (not on initial load)
+    if (properties.length > 0) {
+      fetchProperties();
+    }
+  }, [filters]);
 
   const fetchProperties = () => {
     const token = localStorage.getItem('token');
@@ -54,13 +73,41 @@ const SellerDashboard = () => {
       return;
     }
 
-    setLoading(true);
-    propertyAPI.getProperties({}, token)
+    // Check if any filters are applied
+    const hasFilters = filters.property_type || 
+                      filters.priceRange[0] > 0 || 
+                      filters.priceRange[1] < 10000000 ||
+                      filters.areaRange[0] > 0 || 
+                      filters.areaRange[1] < 10000 ||
+                      filters.sortBy !== 'newest';
+    
+    // Set appropriate loading state
+    if (hasFilters) {
+      setIsFiltering(true);
+    } else {
+      setLoading(true);
+    }
+    
+    // Use filtered API if filters are applied, otherwise use simple API
+    const apiCall = hasFilters ? 
+      propertyAPI.getMyPropertiesFiltered(filters, token) : 
+      propertyAPI.getMyProperties(token);
+    
+    apiCall
       .then(response => {
-        console.log('Properties response:', response.data);
+        console.log('My Properties response:', response.data);
+        
+        // Extract properties from the response
+        let propertiesData;
+        if (hasFilters) {
+          // For filtered results, the response structure might be different
+          propertiesData = response.data.results || response.data || [];
+        } else {
+          propertiesData = response.data.properties || [];
+        }
         
         // Ensure each property has the required structure
-        const formattedProperties = (response.data || []).map(property => ({
+        const formattedProperties = propertiesData.map(property => ({
           ...property,
           // Ensure images array exists
           images: property.images || [],
@@ -82,13 +129,70 @@ const SellerDashboard = () => {
         
         setProperties(formattedProperties);
         setLoading(false);
+        setIsFiltering(false);
       })
       .catch(error => {
-        console.error('Error fetching properties:', error);
+        console.error('Error fetching my properties:', error);
         setLoading(false);
+        setIsFiltering(false);
         // Set empty array to prevent errors
         setProperties([]);
       });
+  };
+
+  const handleDeleteProperty = (propertyId) => {
+    if (window.confirm('Are you sure you want to delete this property?')) {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      // Call the delete API
+      propertyAPI.deleteProperty(propertyId, token)
+        .then(response => {
+          console.log('Property deleted successfully:', response.data);
+          // Remove from local state
+          setProperties(properties.filter(p => p.id !== propertyId));
+          alert('Property deleted successfully!');
+        })
+        .catch(error => {
+          console.error('Error deleting property:', error);
+          if (error.response && error.response.data) {
+            alert(`Error: ${JSON.stringify(error.response.data)}`);
+          } else {
+            alert('Error deleting property. Please try again.');
+          }
+        });
+    }
+  };
+
+  const handleEditProperty = (propertyId) => {
+    // Navigate to edit page or open edit dialog
+    navigate(`/edit-property/${propertyId}`);
+  };
+
+  // Filter change handlers
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  const handleApplyFilters = () => {
+    fetchProperties();
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      property_type: '',
+      priceRange: [0, 10000000],
+      areaRange: [0, 10000],
+      sortBy: 'newest'
+    });
+    // Fetch properties without filters
+    setTimeout(() => fetchProperties(), 100);
   };
 
   const fetchLocationData = () => {
@@ -319,6 +423,9 @@ const SellerDashboard = () => {
         setSelectedImages([]);
         setIsSubmitting(false);
         alert('Property created successfully!');
+        
+        // Refresh the properties list to get the latest data from the server
+        fetchProperties();
       })
       .catch(error => {
         console.error('Error creating property:', error);
@@ -347,6 +454,7 @@ const SellerDashboard = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Header Section */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4" sx={{ color: '#4267B2' }}>
           Your Properties
@@ -363,24 +471,332 @@ const SellerDashboard = () => {
         </Button>
       </Box>
       
-      {loading ? (
-        <CircularProgress />
-      ) : properties.length === 0 ? (
-        <Typography variant="body1" align="center" sx={{ mt: 4 }}>
-          You haven't listed any properties yet
-        </Typography>
-      ) : (
-        <Grid container spacing={3}>
-          {properties.map(property => (
-            <Grid item key={property.id} xs={12} sm={6} md={4} lg={3}>
-              <PropertyCard 
-                property={property} 
-                showShortlistCount={true}
+      {/* Main Content - Filters and Properties Side by Side */}
+      <Box sx={{ 
+        display: 'flex', 
+        gap: 3,
+        flexDirection: { xs: 'column', lg: 'row' }
+      }}>
+        {/* Left Side - Filters (30% width on large screens, full width on mobile) */}
+        <Box sx={{ 
+          width: { xs: '100%', lg: '30%' }, 
+          flexShrink: 0,
+          order: { xs: 2, lg: 1 }
+        }}>
+          <Paper elevation={3} sx={{ 
+            p: 3, 
+            position: { xs: 'static', lg: 'sticky' }, 
+            top: 20 
+          }}>
+            <Typography variant="h6" gutterBottom sx={{ color: '#4267B2', mb: 3, textAlign: 'center' }}>
+              🔍 Filter Properties
+            </Typography>
+            
+            {/* Property Type Filter */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+                Property Type
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={filters.property_type}
+                  onChange={(e) => handleFilterChange('property_type', e.target.value)}
+                  displayEmpty
+                  sx={{ 
+                    '& .MuiSelect-select': { 
+                      backgroundColor: '#f8f9fa',
+                      borderRadius: 1
+                    }
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>All Types</em>
+                  </MenuItem>
+                  <MenuItem value="AGRICULTURE">🏞️ Agriculture Land</MenuItem>
+                  <MenuItem value="OPEN_PLOT">📐 Open Plot</MenuItem>
+                  <MenuItem value="FLAT">🏢 Flat</MenuItem>
+                  <MenuItem value="HOUSE">🏠 Independent House</MenuItem>
+                  <MenuItem value="BUILDING">🏗️ Building</MenuItem>
+                  <MenuItem value="COMMERCIAL">🏪 Commercial Space</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            
+            {/* Price Range Filter */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+                💰 Price Range
+              </Typography>
+              <Slider
+                value={filters.priceRange}
+                onChange={(event, newValue) => handleFilterChange('priceRange', newValue)}
+                valueLabelDisplay="auto"
+                min={0}
+                max={10000000}
+                step={100000}
+                valueLabelFormat={(value) => `₹${(value / 100000).toFixed(1)}L`}
+                sx={{
+                  '& .MuiSlider-thumb': {
+                    backgroundColor: '#4267B2',
+                  },
+                  '& .MuiSlider-track': {
+                    backgroundColor: '#4267B2',
+                  },
+                  '& .MuiSlider-rail': {
+                    backgroundColor: '#e0e0e0',
+                  }
+                }}
               />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  ₹{filters.priceRange[0].toLocaleString()}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  ₹{filters.priceRange[1].toLocaleString()}
+                </Typography>
+              </Box>
+            </Box>
+            
+            {/* Area Range Filter */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+                📏 Area Range
+              </Typography>
+              <Slider
+                value={filters.areaRange}
+                onChange={(event, newValue) => handleFilterChange('areaRange', newValue)}
+                valueLabelDisplay="auto"
+                min={0}
+                max={10000}
+                step={100}
+                sx={{
+                  '& .MuiSlider-thumb': {
+                    backgroundColor: '#4267B2',
+                  },
+                  '& .MuiSlider-track': {
+                    backgroundColor: '#4267B2',
+                  },
+                  '& .MuiSlider-rail': {
+                    backgroundColor: '#e0e0e0',
+                  }
+                }}
+              />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {filters.areaRange[0]}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {filters.areaRange[1]}
+                </Typography>
+              </Box>
+            </Box>
+            
+            {/* Sort By Filter */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+                📊 Sort By
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={filters.sortBy}
+                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                  sx={{ 
+                    '& .MuiSelect-select': { 
+                      backgroundColor: '#f8f9fa',
+                      borderRadius: 1
+                    }
+                  }}
+                >
+                  <MenuItem value="newest">🆕 Newest First</MenuItem>
+                  <MenuItem value="oldest">📅 Oldest First</MenuItem>
+                  <MenuItem value="price_low">💰 Price: Low to High</MenuItem>
+                  <MenuItem value="price_high">💰 Price: High to Low</MenuItem>
+                  <MenuItem value="area_low">📏 Area: Low to High</MenuItem>
+                  <MenuItem value="area_high">📏 Area: High to Low</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            
+            {/* Filter Action Buttons */}
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'row', sm: 'column' }, gap: 2 }}>
+              <Button
+                variant="contained"
+                onClick={handleApplyFilters}
+                fullWidth
+                sx={{ 
+                  backgroundColor: '#4267B2',
+                  '&:hover': { backgroundColor: '#365899' },
+                  py: 1.5,
+                  fontWeight: 'bold'
+                }}
+              >
+                ✅ Apply Filters
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={handleClearFilters}
+                fullWidth
+                sx={{ 
+                  borderColor: '#4267B2',
+                  color: '#4267B2',
+                  '&:hover': { 
+                    borderColor: '#365899',
+                    backgroundColor: 'rgba(66, 103, 178, 0.04)'
+                  },
+                  py: 1.5
+                }}
+              >
+                🗑️ Clear Filters
+              </Button>
+            </Box>
+            
+            {/* Active Filters Summary */}
+            {(filters.property_type || 
+              filters.priceRange[0] > 0 || 
+              filters.priceRange[1] < 10000000 ||
+              filters.areaRange[0] > 0 || 
+              filters.areaRange[1] < 10000 ||
+              filters.sortBy !== 'newest') && (
+              <Box sx={{ mt: 3, p: 2, backgroundColor: '#e3f2fd', borderRadius: 1, border: '1px solid #90caf9' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#1976d2', mb: 1 }}>
+                  🎯 Active Filters:
+                </Typography>
+                <Box sx={{ fontSize: '0.875rem', color: '#1976d2' }}>
+                  {filters.property_type && <div>• Type: {filters.property_type}</div>}
+                  {(filters.priceRange[0] > 0 || filters.priceRange[1] < 10000000) && (
+                    <div>• Price: ₹{filters.priceRange[0].toLocaleString()} - ₹{filters.priceRange[1].toLocaleString()}</div>
+                  )}
+                  {(filters.areaRange[0] > 0 || filters.areaRange[1] < 10000) && (
+                    <div>• Area: {filters.areaRange[0]} - {filters.areaRange[1]}</div>
+                  )}
+                  {filters.sortBy !== 'newest' && <div>• Sort: {filters.sortBy.replace('_', ' ')}</div>}
+                </Box>
+              </Box>
+            )}
+          </Paper>
+        </Box>
+        
+        {/* Right Side - Properties Display (70% width on large screens, full width on mobile) */}
+        <Box sx={{ 
+          width: { xs: '100%', lg: '70%' }, 
+          flexGrow: 1,
+          order: { xs: 1, lg: 2 }
+        }}>
+          {/* Properties Count and Status */}
+          <Box sx={{ 
+            mb: 3, 
+            display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' },
+            justifyContent: 'space-between', 
+            alignItems: { xs: 'flex-start', sm: 'center' },
+            gap: { xs: 2, sm: 0 }
+          }}>
+            <Box>
+              <Typography variant="h6" sx={{ color: '#4267B2', fontWeight: 'bold' }}>
+                Properties ({properties.length})
+              </Typography>
+              {(filters.property_type || 
+                filters.priceRange[0] > 0 || 
+                filters.priceRange[1] < 10000000 ||
+                filters.areaRange[0] > 0 || 
+                filters.areaRange[1] < 10000 ||
+                filters.sortBy !== 'newest') && (
+                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                  Showing filtered results
+                </Typography>
+              )}
+            </Box>
+            
+            {/* Quick Stats */}
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Paper elevation={1} sx={{ p: 1.5, textAlign: 'center', minWidth: 80 }}>
+                <Typography variant="h6" sx={{ color: '#4267B2', fontWeight: 'bold' }}>
+                  {properties.length}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Total
+                </Typography>
+              </Paper>
+              {properties.length > 0 && (
+                <Paper elevation={1} sx={{ p: 1.5, textAlign: 'center', minWidth: 80 }}>
+                  <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
+                    {properties.filter(p => p.images && p.images.length > 0).length}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    With Images
+                  </Typography>
+                </Paper>
+              )}
+            </Box>
+          </Box>
+          
+          {/* Loading States */}
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <CircularProgress size={60} sx={{ color: '#4267B2', mb: 2 }} />
+                <Typography variant="h6" sx={{ color: '#4267B2' }}>
+                  Loading your properties...
+                </Typography>
+              </Box>
+            </Box>
+          ) : isFiltering ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <CircularProgress size={40} sx={{ color: '#4267B2', mb: 2 }} />
+                <Typography variant="h6" sx={{ color: '#4267B2' }}>
+                  Applying filters...
+                </Typography>
+              </Box>
+            </Box>
+          ) : properties.length === 0 ? (
+            <Box sx={{ textAlign: 'center', mt: 8 }}>
+              <Typography variant="h5" sx={{ color: '#666', mb: 2 }}>
+                {filters.property_type || filters.priceRange[0] > 0 || filters.priceRange[1] < 10000000 || filters.areaRange[0] > 0 || filters.areaRange[1] < 10000 || filters.sortBy !== 'newest' 
+                  ? '🔍 No properties match your filters' 
+                  : '📝 You haven\'t listed any properties yet'
+                }
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#888', mb: 3 }}>
+                {filters.property_type || filters.priceRange[0] > 0 || filters.priceRange[1] < 10000000 || filters.areaRange[0] > 0 || filters.areaRange[1] < 10000 || filters.sortBy !== 'newest' 
+                  ? 'Try adjusting your search criteria or clear filters to see all properties.' 
+                  : 'Start by adding your first property using the "Add New Property" button above.'
+                }
+              </Typography>
+              {(filters.property_type || filters.priceRange[0] > 0 || filters.priceRange[1] < 10000000 || filters.areaRange[0] > 0 || filters.areaRange[1] < 10000 || filters.sortBy !== 'newest') && (
+                <Button
+                  variant="outlined"
+                  onClick={handleClearFilters}
+                  sx={{ 
+                    borderColor: '#4267B2',
+                    color: '#4267B2',
+                    '&:hover': { 
+                      borderColor: '#365899',
+                      backgroundColor: 'rgba(66, 103, 178, 0.04)'
+                    }
+                  }}
+                >
+                  🗑️ Clear All Filters
+                </Button>
+              )}
+            </Box>
+          ) : (
+            /* Properties Grid */
+            <Grid container spacing={3}>
+              {properties.map(property => (
+                <Grid item key={property.id} xs={12} sm={6} lg={4}>
+                  <PropertyCard 
+                    property={property} 
+                    showShortlistCount={true}
+                    onEdit={() => handleEditProperty(property.id)}
+                    onDelete={() => handleDeleteProperty(property.id)}
+                  />
+                </Grid>
+              ))}
             </Grid>
-          ))}
-        </Grid>
-      )}
+          )}
+        </Box>
+      </Box>
       
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>Add New Property</DialogTitle>
