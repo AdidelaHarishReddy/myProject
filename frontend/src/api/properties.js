@@ -68,6 +68,15 @@ const deleteProperty = (propertyId, token) => {
   });
 };
 
+const updateProperty = (propertyId, formData, token) => {
+  return axios.patch(`${API_URL}${propertyId}/`, formData, {
+    headers: { 
+      'Authorization': `Token ${token}`,
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
 // New method to get properties created by the current user
 const getMyProperties = (token) => {
   return axios.get(`${API_URL}my_properties/`, {
@@ -149,6 +158,7 @@ export default {
   getProperties,
   getPropertyById,
   createProperty,
+  updateProperty,
   deleteProperty,
   getMyProperties,
   getMyPropertyDetail,

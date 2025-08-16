@@ -26,7 +26,30 @@ const Shortlist = () => {
     setLoading(true);
     propertyAPI.getShortlistedProperties(token)
       .then(response => {
-        setProperties(response.data);
+        console.log('Shortlisted properties response:', response.data);
+        
+        // Format the properties to ensure all required fields exist
+        const formattedProperties = response.data.map(property => ({
+          ...property,
+          // Ensure images array exists
+          images: property.images || [],
+          // Ensure location object exists
+          location: property.location || {
+            state: 'Unknown',
+            district: 'Unknown',
+            sub_district: 'Unknown',
+            village: 'Unknown',
+            pin_code: 'Unknown'
+          },
+          // Ensure other required fields exist
+          title: property.title || 'Untitled Property',
+          price: property.price || 0,
+          area: property.area || 0,
+          area_display: property.area_display || 'Area not specified',
+          property_type: property.property_type || 'UNKNOWN'
+        }));
+        
+        setProperties(formattedProperties);
         setLoading(false);
       })
       .catch(error => {

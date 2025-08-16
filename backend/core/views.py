@@ -169,8 +169,23 @@ class PropertyViewSet(viewsets.ModelViewSet):
             # Property type specific filtering
             property_type = self.request.query_params.get('property_type')
             if property_type and property_type != '':
-                queryset = queryset.filter(property_type=property_type)
-                print(f"Filtered by property type: {property_type}")
+                print(f"Before filtering - Total properties: {queryset.count()}")
+                print(f"Property type choices: {[choice[0] for choice in Property.PROPERTY_TYPES]}")
+                print(f"Filtering by property type: {property_type}")
+                
+                # Check if the property type exists in choices
+                valid_types = [choice[0] for choice in Property.PROPERTY_TYPES]
+                if property_type in valid_types:
+                    queryset = queryset.filter(property_type=property_type)
+                    print(f"After filtering - Properties with type {property_type}: {queryset.count()}")
+                    
+                    # Debug: Show some sample properties
+                    sample_properties = list(queryset[:3])
+                    for prop in sample_properties:
+                        print(f"Sample property: ID={prop.id}, Type={prop.property_type}, Title={prop.title}")
+                else:
+                    print(f"Invalid property type: {property_type}")
+                    print(f"Valid types are: {valid_types}")
             
             # Price filtering
             price_gte = self.request.query_params.get('price__gte')

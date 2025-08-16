@@ -1,19 +1,24 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
 import { Provider } from 'react-redux';
-import theme from './styles/theme';
 import store from './store/store';
+import theme from './styles/theme';
+
+// Pages
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import OTPVerification from './components/Auth/OTPVerification';
 import BuyerDashboard from './pages/BuyerDashboard';
 import SellerDashboard from './pages/SellerDashboard';
+import EditProperty from './pages/EditProperty';
 import PropertyDetail from './pages/PropertyDetail';
 import Shortlist from './pages/Shortlist';
-import PrivateRoute from './components/PrivateRoute';
+
+// Components
 import Navbar from './components/Navbar';
+import PrivateRoute from './components/PrivateRoute';
 import authAPI from './api/auth';
 
 const App = () => {
@@ -55,6 +60,12 @@ const App = () => {
             <Route path="/seller" element={
               <PrivateRoute allowedRoles={['SELLER']}>
                 <SellerDashboard />
+              </PrivateRoute>
+            } />
+            
+            <Route path="/edit-property/:id" element={
+              <PrivateRoute allowedRoles={['SELLER']}>
+                <EditProperty />
               </PrivateRoute>
             } />
             
