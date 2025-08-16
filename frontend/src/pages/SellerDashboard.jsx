@@ -34,9 +34,12 @@ const SellerDashboard = () => {
     price: 0,
     area: 0,
     youtube_link: '',
+    latitude: '',
+    longitude: '',
     images: []
   });
   const [selectedImages, setSelectedImages] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -132,7 +135,6 @@ const SellerDashboard = () => {
       village,
       pin_code: ''
     });
-    
     locationAPI.getPinCodes(
       newProperty.state, 
       newProperty.district, 
@@ -146,6 +148,37 @@ const SellerDashboard = () => {
     });
   };
 
+  const getCoordinatesFromLocation = async () => {
+    if (!newProperty.state || !newProperty.district || !newProperty.sub_district || !newProperty.village) {
+      alert('Please select location fields first');
+      return;
+    }
+
+    const locationString = `${newProperty.village}, ${newProperty.sub_district}, ${newProperty.district}, ${newProperty.state}, India`;
+    
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationString)}&limit=1`
+      );
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setNewProperty(prev => ({
+          ...prev,
+          latitude: parseFloat(lat).toFixed(6),
+          longitude: parseFloat(lon).toFixed(6)
+        }));
+        alert(`Coordinates found: ${lat}, ${lon}`);
+      } else {
+        alert('Could not find coordinates for this location. Please enter manually.');
+      }
+    } catch (error) {
+      console.error('Error getting coordinates:', error);
+      alert('Error getting coordinates. Please enter manually.');
+    }
+  };
+
   const handleImageChange = (e) => {
     setSelectedImages([...e.target.files]);
   };
@@ -156,6 +189,34 @@ const SellerDashboard = () => {
       navigate('/login');
       return;
     }
+
+    // Basic validation
+    if (!newProperty.title.trim()) {
+      alert('Please enter a property title');
+      return;
+    }
+    if (!newProperty.description.trim()) {
+      alert('Please enter a property description');
+      return;
+    }
+    if (!newProperty.address.trim()) {
+      alert('Please enter a property address');
+      return;
+    }
+    if (!newProperty.state || !newProperty.district || !newProperty.sub_district || !newProperty.village || !newProperty.pin_code) {
+      alert('Please select all location fields');
+      return;
+    }
+    if (newProperty.price <= 0) {
+      alert('Please enter a valid price');
+      return;
+    }
+    if (newProperty.area <= 0) {
+      alert('Please enter a valid area');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     const formData = new FormData();
     formData.append('property_type', newProperty.property_type);
@@ -172,9 +233,15 @@ const SellerDashboard = () => {
     if (newProperty.youtube_link) {
       formData.append('youtube_link', newProperty.youtube_link);
     }
+    if (newProperty.latitude) {
+      formData.append('latitude', newProperty.latitude);
+    }
+    if (newProperty.longitude) {
+      formData.append('longitude', newProperty.longitude);
+    }
     
     selectedImages.forEach((image, index) => {
-      formData.append(`images[${index}]`, image);
+      formData.append('images', image);
     });
 
     propertyAPI.createProperty(formData, token)
@@ -194,12 +261,22 @@ const SellerDashboard = () => {
           price: 0,
           area: 0,
           youtube_link: '',
+          latitude: '',
+          longitude: '',
           images: []
         });
         setSelectedImages([]);
+        setIsSubmitting(false);
+        alert('Property created successfully!');
       })
       .catch(error => {
         console.error('Error creating property:', error);
+        setIsSubmitting(false);
+        if (error.response && error.response.data) {
+          alert(`Error: ${JSON.stringify(error.response.data)}`);
+        } else {
+          alert('Error creating property. Please try again.');
+        }
       });
   };
 
@@ -278,6 +355,15 @@ const SellerDashboard = () => {
                   <MenuItem value="COMMERCIAL">Commercial Space</MenuItem>
                 </Select>
               </FormControl>
+              
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                {newProperty.property_type === 'AGRICULTURE' && 'Agriculture land typically ranges from 0.1 to 100 acres'}
+                {newProperty.property_type === 'OPEN_PLOT' && 'Open plots typically range from 10 to 2000 sq yards'}
+                {newProperty.property_type === 'FLAT' && 'Flats typically range from 100 to 10000 sq feet'}
+                {newProperty.property_type === 'HOUSE' && 'Independent houses typically range from 10 to 2000 sq yards'}
+                {newProperty.property_type === 'BUILDING' && 'Buildings typically range from 50 to 1000 sq yards'}
+                {newProperty.property_type === 'COMMERCIAL' && 'Commercial spaces typically range from 100 to 10000 sq feet'}
+              </Typography>
               
               <TextField
                 label="Title"
@@ -397,6 +483,9 @@ const SellerDashboard = () => {
                 max={areaConfig.max}
                 step={areaConfig.step}
               />
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                Range: {areaConfig.min} - {areaConfig.max} {areaConfig.unit}
+              </Typography>
               
               <TextField
                 label="Price (₹)"
@@ -406,6 +495,48 @@ const SellerDashboard = () => {
                 value={newProperty.price}
                 onChange={(e) => setNewProperty({ ...newProperty, price: e.target.value })}
               />
+              
+              <Box sx={{ mt: 2, mb: 1 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Location Coordinates (optional)
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={getCoordinatesFromLocation}
+                  sx={{ mb: 2 }}
+                  disabled={!newProperty.state || !newProperty.district || !newProperty.sub_district || !newProperty.village}
+                >
+                  Get Coordinates from Location
+                </Button>
+              </Box>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Latitude"
+                    fullWidth
+                    margin="normal"
+                    type="number"
+                    step="any"
+                    placeholder="e.g., 19.0760"
+                    value={newProperty.latitude}
+                    onChange={(e) => setNewProperty({ ...newProperty, latitude: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Longitude"
+                    fullWidth
+                    margin="normal"
+                    type="number"
+                    step="any"
+                    placeholder="e.g., 72.8777"
+                    value={newProperty.longitude}
+                    onChange={(e) => setNewProperty({ ...newProperty, longitude: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
               
               <Button
                 variant="contained"
@@ -439,8 +570,9 @@ const SellerDashboard = () => {
               backgroundColor: '#4267B2',
               '&:hover': { backgroundColor: '#365899' }
             }}
+            disabled={isSubmitting}
           >
-            Submit
+            {isSubmitting ? 'Submitting...' : 'Submit'}
           </Button>
         </DialogActions>
       </Dialog>

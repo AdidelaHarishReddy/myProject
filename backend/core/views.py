@@ -12,7 +12,7 @@ from .models import User, Property, Shortlist, IndiaLocation
 from .serializers import (
     UserSerializer, UserRegisterSerializer, UserLoginSerializer,
     OTPSerializer, ResendOTPSerializer, PropertySerializer,
-    IndiaLocationSerializer, ShortlistSerializer
+    PropertyCreateSerializer, IndiaLocationSerializer, ShortlistSerializer
 )
 from django.contrib.auth import login, logout
 from rest_framework.authtoken.models import Token
@@ -133,6 +133,11 @@ class PropertyViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsAuthenticated()]
         return []
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return PropertyCreateSerializer
+        return PropertySerializer
 
     def get_queryset(self):
         queryset = super().get_queryset()
