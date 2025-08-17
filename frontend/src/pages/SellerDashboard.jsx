@@ -9,11 +9,13 @@ import PropertyCard from '../components/PropertyCard';
 import propertyAPI from '../api/properties';
 import locationAPI from '../api/locations';
 import { useNavigate } from 'react-router-dom';
+import Profile from '../components/Profile';
 
 const SellerDashboard = () => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openProfile, setOpenProfile] = useState(false);
   const [locationData, setLocationData] = useState({
     states: [],
     districts: [],
@@ -45,7 +47,7 @@ const SellerDashboard = () => {
   const [filters, setFilters] = useState({
     property_type: '',
     priceRange: [0, 10000000],
-    areaRange: [0, 10000],
+    areaRange: [0, 1000],
     sortBy: 'newest'
   });
   
@@ -459,17 +461,37 @@ const SellerDashboard = () => {
         <Typography variant="h4" sx={{ color: '#4267B2' }}>
           Your Properties
         </Typography>
-        <Button 
-          variant="contained" 
-          onClick={() => setOpenDialog(true)}
-          sx={{ 
-            backgroundColor: '#4267B2',
-            '&:hover': { backgroundColor: '#365899' }
-          }}
-        >
-          Add New Property
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button 
+            variant="outlined"
+            onClick={() => setOpenProfile(true)}
+            sx={{ borderColor: '#4267B2', color: '#4267B2', '&:hover': { borderColor: '#365899', backgroundColor: 'rgba(66, 103, 178, 0.04)' } }}
+          >
+            Profile
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={() => setOpenDialog(true)}
+            sx={{ 
+              backgroundColor: '#4267B2',
+              '&:hover': { backgroundColor: '#365899' }
+            }}
+          >
+            Add New Property
+          </Button>
+        </Box>
       </Box>
+      
+      {/* Profile Dialog */}
+      <Dialog open={openProfile} onClose={() => setOpenProfile(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Profile</DialogTitle>
+        <DialogContent>
+          <Profile token={localStorage.getItem('token')} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenProfile(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
       
       {/* Main Content - Filters and Properties Side by Side */}
       <Box sx={{ 
