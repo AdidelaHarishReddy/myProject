@@ -6,13 +6,18 @@ const Profile = ({ token }) => {
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     // Fetch user details
     axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/auth/user/`, {
       headers: { Authorization: `Token ${token}` },
     })
-      .then(res => setUser(res.data))
+      .then(res => {
+        setUser(res.data);
+        setName(res.data.full_name || res.data.first_name || res.data.name || '');
+      })
       .catch(err => console.error(err));
   }, [token]);
 
@@ -22,10 +27,11 @@ const Profile = ({ token }) => {
     setPreview(URL.createObjectURL(file));
   };
 
-  const handlePhotoUpload = () => {
-    if (!photo) return;
+  const handleSave = () => {
+    setSaving(true);
     const formData = new FormData();
-    formData.append('photo', photo);
+    if (photo) formData.append('photo', photo);
+    if (name) formData.append('full_name', name); // Adjust field name as per backend
     axios.patch(`${process.env.REACT_APP_API_BASE_URL}/api/auth/user/`, formData, {
       headers: {
         Authorization: `Token ${token}`,
@@ -37,11 +43,18 @@ const Profile = ({ token }) => {
         setEditing(false);
         setPhoto(null);
         setPreview(null);
+        setSaving(false);
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+        setSaving(false);
+        alert('Failed to update profile.');
+      });
   };
 
   if (!user) return <div>Loading...</div>;
+
+  // Prefer full_name, first_name, name, then username
+  const displayName = user.full_name || user.first_name || user.name || user.username || '';
 
   return (
     <div style={{ maxWidth: 400, margin: '0 auto', padding: 20, border: '1px solid #ccc', borderRadius: 8 }}>
@@ -52,19 +65,35 @@ const Profile = ({ token }) => {
           alt="Profile"
           style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', marginBottom: 10 }}
         />
-        <div><strong>Name:</strong> {user.name || user.username}</div>
+        <div style={{ margin: '10px 0' }}>
+          <strong>Name:</strong>{' '}
+          {editing ? (
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              style={{ padding: 4, borderRadius: 4, border: '1px solid #ccc', width: '70%' }}
+            />
+          ) : (
+            <span>{displayName}</span>
+          )}
+        </div>
         <div><strong>Email:</strong> {user.email}</div>
         {/* Add more fields as needed */}
         <br />
         {editing ? (
           <div>
             <input type="file" accept="image/*" onChange={handlePhotoChange} />
-            <button onClick={handlePhotoUpload}>Save Photo</button>
-            <button onClick={() => { setEditing(false); setPhoto(null); setPreview(null); }}>Cancel</button>
+            <button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+            <button onClick={() => { setEditing(false); setPhoto(null); setPreview(null); setName(displayName); }}>Cancel</button>
           </div>
         ) : (
-          <button onClick={() => setEditing(true)}>Edit Photo</button>
+          <button onClick={() => setEditing(true)}>Edit Profile</button>
         )}
+        <div style={{ marginTop: 10, color: '#888', fontSize: 12 }}>
+          {/* Note for backend integration */}
+          <em>Note: If photo or name changes do not save, ensure your backend supports PATCH /api/auth/user/ with 'photo' and 'full_name' fields.</em>
+        </div>
       </div>
     </div>
   );
