@@ -3,8 +3,9 @@ on:
   push:
     branches:
     - main
-    - frontend/*
-    - backend/*
+    paths:
+    - "frontend/**"
+    - "backend/**"
 jobs:
   docker_frontend_build:
     runs-on: ubuntu-latest
