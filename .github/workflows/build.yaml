@@ -41,7 +41,7 @@ jobs:
       build_number: ${{ needs.docker_frontend_build.outputs.build_number }}
     needs: docker_frontend_build
     steps:
-      # building the backend docker image and pushing it to dockerhub
+      # #building the backend docker image and pushing it to dockerhub
       - name: checkout
         uses: actions/checkout@v4
       - name: log in to docker hub   
