@@ -4,7 +4,7 @@ COPY package.json ./
 COPY .env ./
 RUN npm install
 COPY . .
-###backend url##
+###backend url###
 ARG REACT_APP_API_BASE_URL
 ENV REACT_APP_API_BASE_URL=http://13.200.243.192:8000
 RUN echo "Building frontend with API URL: $REACT_APP_API_BASE_URL"
