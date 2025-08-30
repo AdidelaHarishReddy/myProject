@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useDispatch } from 'react-redux';
+import { updateUser } from '../store/actions';
 
 const Profile = ({ token }) => {
+  const dispatch = useDispatch();
   const [user, setUser] = useState(null);
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState(null);
   const [editing, setEditing] = useState(false);
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -16,7 +20,8 @@ const Profile = ({ token }) => {
     })
       .then(res => {
         setUser(res.data);
-        setName(res.data.full_name || res.data.first_name || res.data.name || '');
+        setFirstName(res.data.first_name || '');
+        setLastName(res.data.last_name || '');
       })
       .catch(err => console.error(err));
   }, [token]);
@@ -30,8 +35,10 @@ const Profile = ({ token }) => {
   const handleSave = () => {
     setSaving(true);
     const formData = new FormData();
-    if (photo) formData.append('photo', photo);
-    if (name) formData.append('full_name', name); // Adjust field name as per backend
+    if (photo) formData.append('profile_pic', photo);
+    if (firstName) formData.append('first_name', firstName);
+    if (lastName) formData.append('last_name', lastName);
+    
     axios.patch(`${process.env.REACT_APP_API_BASE_URL}/api/auth/user/`, formData, {
       headers: {
         Authorization: `Token ${token}`,
@@ -40,6 +47,8 @@ const Profile = ({ token }) => {
     })
       .then(res => {
         setUser(res.data);
+        // Update Redux store so other components can see the changes
+        dispatch(updateUser(res.data));
         setEditing(false);
         setPhoto(null);
         setPreview(null);
@@ -53,47 +62,56 @@ const Profile = ({ token }) => {
 
   if (!user) return <div>Loading...</div>;
 
-  // Prefer full_name, first_name, name, then username
-  const displayName = user.full_name || user.first_name || user.name || user.username || '';
+  // Create display name from first and last name
+  const displayName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || '';
 
   return (
     <div style={{ maxWidth: 400, margin: '0 auto', padding: 20, border: '1px solid #ccc', borderRadius: 8 }}>
       <h2>Profile</h2>
       <div style={{ textAlign: 'center' }}>
         <img
-          src={preview || user.photo || 'https://via.placeholder.com/120'}
+          src={preview || user.profile_pic || 'https://via.placeholder.com/120'}
           alt="Profile"
           style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', marginBottom: 10 }}
         />
         <div style={{ margin: '10px 0' }}>
           <strong>Name:</strong>{' '}
           {editing ? (
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              style={{ padding: 4, borderRadius: 4, border: '1px solid #ccc', width: '70%' }}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="First Name"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                style={{ padding: 4, borderRadius: 4, border: '1px solid #ccc', width: '70%' }}
+              />
+              <input
+                type="text"
+                placeholder="Last Name"
+                value={lastName}
+                onChange={e => setLastName(e.target.value)}
+                style={{ padding: 4, borderRadius: 4, border: '1px solid #ccc', width: '70%' }}
+              />
+            </div>
           ) : (
             <span>{displayName}</span>
           )}
         </div>
         <div><strong>Email:</strong> {user.email}</div>
+        <div><strong>Phone:</strong> {user.phone}</div>
+        <div><strong>User Type:</strong> {user.user_type}</div>
         {/* Add more fields as needed */}
         <br />
         {editing ? (
           <div>
             <input type="file" accept="image/*" onChange={handlePhotoChange} />
             <button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
-            <button onClick={() => { setEditing(false); setPhoto(null); setPreview(null); setName(displayName); }}>Cancel</button>
+            <button onClick={() => { setEditing(false); setPhoto(null); setPreview(null); setFirstName(user.first_name || ''); setLastName(user.last_name || ''); }}>Cancel</button>
           </div>
         ) : (
           <button onClick={() => setEditing(true)}>Edit Profile</button>
         )}
-        <div style={{ marginTop: 10, color: '#888', fontSize: 12 }}>
-          {/* Note for backend integration */}
-          <em>Note: If photo or name changes do not save, ensure your backend supports PATCH /api/auth/user/ with 'photo' and 'full_name' fields.</em>
-        </div>
+
       </div>
     </div>
   );

@@ -15,6 +15,7 @@ import SellerDashboard from './pages/SellerDashboard';
 import EditProperty from './pages/EditProperty';
 import PropertyDetail from './pages/PropertyDetail';
 import Shortlist from './pages/Shortlist';
+import Profile from './components/Profile';
 
 // Components
 import Navbar from './components/Navbar';
@@ -78,6 +79,12 @@ const App = () => {
             <Route path="/shortlist" element={
               <PrivateRoute>
                 <Shortlist />
+              </PrivateRoute>
+            } />
+            
+            <Route path="/profile" element={
+              <PrivateRoute>
+                <Profile token={localStorage.getItem('token')} />
               </PrivateRoute>
             } />
           </Routes>

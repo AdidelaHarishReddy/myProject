@@ -21,7 +21,8 @@ from .models import User, Property, Shortlist, IndiaLocation
 from .serializers import (
     UserSerializer, UserRegisterSerializer, UserLoginSerializer,
     OTPSerializer, ResendOTPSerializer, PropertySerializer,
-    PropertyCreateSerializer, IndiaLocationSerializer, ShortlistSerializer
+    PropertyCreateSerializer, IndiaLocationSerializer, ShortlistSerializer,
+    UserProfileUpdateSerializer
 )
 from django.contrib.auth import login, logout
 from rest_framework.authtoken.models import Token
@@ -122,6 +123,15 @@ class UserProfileView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        serializer = UserProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            # Return updated user data
+            user_serializer = UserSerializer(request.user)
+            return Response(user_serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PropertyViewSet(viewsets.ModelViewSet):
     queryset = Property.objects.all()
