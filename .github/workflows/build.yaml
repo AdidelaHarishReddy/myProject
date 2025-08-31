@@ -50,7 +50,7 @@ jobs:
         run: sudo docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_frontend_build.outputs.build_number }} ./backend
       - name: push to dockerhub
         run: sudo docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_frontend_build.outputs.build_number }}
-  deploy_to_aws:
+  deploy_to_VM:
     runs-on: ubuntu-latest
     needs: docker_backend_build
     steps:
