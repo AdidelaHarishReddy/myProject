@@ -27,7 +27,11 @@ jobs:
         run: echo "build_number=${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
       # building and pushing the frontend docker image
       - name: building the frontend dockerfile
-        run: sudo docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ steps.set_build_number.outputs.build_number }} ./frontend --build-arg REACT_APP_API_BASE_URL=http://${{ secrets.AWS_HOST }}:8000
+        # env:
+        #      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        #      BUILD_NUMBER: ${{ steps.set_build_number.outputs.build_number }}
+        #      REACT_APP_API_BASE_URL: http://${{ secrets.AWS_HOST }}:8000
+        run: sudo docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ steps.set_build_number.outputs.build_number }} ./frontend
       - name: push to dockerhub
         run: sudo docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ steps.set_build_number.outputs.build_number }}
 
@@ -37,7 +41,7 @@ jobs:
       build_number: ${{ needs.docker_frontend_build.outputs.build_number }}
     needs: docker_frontend_build
     steps:
-      # building the backend docker image and pushing it to dockerhub
+      # #building the backend docker image and pushing it to dockerhub
       - name: checkout
         uses: actions/checkout@v4
       - name: log in to docker hub   
@@ -46,7 +50,7 @@ jobs:
         run: sudo docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_frontend_build.outputs.build_number }} ./backend
       - name: push to dockerhub
         run: sudo docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_frontend_build.outputs.build_number }}
-  deploy_to_aws:
+  deploy_to_VM:
     runs-on: ubuntu-latest
     needs: docker_backend_build
     steps:
