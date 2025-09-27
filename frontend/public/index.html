@@ -73,6 +73,9 @@
   </noscript>
   <div id="root"></div>
   
+  <!-- Load environment variables first -->
+  <script src="%PUBLIC_URL%/env.js"></script>
+  
   <!-- Load polyfills for older browsers -->
   <script>
     if (!window.Promise) {

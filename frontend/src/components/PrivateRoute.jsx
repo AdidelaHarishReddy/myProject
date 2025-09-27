@@ -6,12 +6,17 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   const isAuthenticated = useSelector(state => state.isAuthenticated);
   const user = useSelector(state => state.user);
   
+  // Debug logging
+  console.log('PrivateRoute - isAuthenticated:', isAuthenticated, 'user:', user);
+  
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    console.log('PrivateRoute - Redirecting to login');
+    return <Navigate to="/login" replace />;
   }
   
-  if (allowedRoles && !allowedRoles.includes(user?.user_type)) {
-    return <Navigate to="/" />;
+  if (allowedRoles && user && !allowedRoles.includes(user.user_type)) {
+    console.log('PrivateRoute - User role not allowed, redirecting to home');
+    return <Navigate to="/" replace />;
   }
   
   return children;
