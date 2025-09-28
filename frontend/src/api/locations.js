@@ -1,10 +1,20 @@
 import axios from 'axios';
 
-const API_URL = `${window._env_.REACT_APP_API_BASE_URL}/api/locations/`;
+// Get API URL with fallback
+const getAPIUrl = () => {
+  const baseUrl = window._env_?.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+  return `${baseUrl}/api/locations/`;
+};
+
+const API_URL = getAPIUrl();
 
 // Create Axios instance
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  }
 });
 
 // Add a request interceptor to include the token //

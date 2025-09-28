@@ -8,30 +8,63 @@ const getAPIUrl = () => {
 
 const API_URL = getAPIUrl();
 
+// Create Axios instance with base configuration
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
+
+// Add request interceptor for error handling
+api.interceptors.request.use(
+  config => {
+    console.log('Making API request to:', config.url);
+    return config;
+  },
+  error => {
+    console.error('Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for error handling
+api.interceptors.response.use(
+  response => {
+    console.log('API response received:', response.status);
+    return response;
+  },
+  error => {
+    console.error('Response error:', error.response?.status, error.message);
+    return Promise.reject(error);
+  }
+);
+
 const register = (userData) => {
-  return axios.post(`${API_URL}register/`, userData);
+  return api.post('register/', userData);
 };
 
 const login = (credentials) => {
-  return axios.post(`${API_URL}login/`, credentials);
+  return api.post('login/', credentials);
 };
 
 const verifyOTP = (otpData) => {
-  return axios.post(`${API_URL}verify-otp/`, otpData);
+  return api.post('verify-otp/', otpData);
 };
 
 const resendOTP = (phone) => {
-  return axios.post(`${API_URL}resend-otp/`, { phone });
+  return api.post('resend-otp/', { phone });
 };
 
 const logout = (token) => {
-  return axios.post(`${API_URL}logout/`, {}, {
+  return api.post('logout/', {}, {
     headers: { 'Authorization': `Token ${token}` }
   });
 };
 
 const getCurrentUser = (token) => {
-  return axios.get(`${API_URL}user/`, {
+  return api.get('user/', {
     headers: { 'Authorization': `Token ${token}` }
   });
 };
