@@ -96,7 +96,7 @@ jobs:
             # Run backend container with environment variables
             sudo docker run -d --name backend -p 8000:8000 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ needs.docker_backend_build.outputs.build_number }}
              # Run frontend container
-            sudo docker run -d --name frontend -p 3000:80 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
+            sudo docker run -d -e REACT_APP_API_BASE_URL="http://${{ secrets.AWS_HOST }}:8000" --name frontend -p 3000:80 --network projectnetwork ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ needs.docker_backend_build.outputs.build_number }}
             # Verify containers are running
             echo "Running containers:"
             sudo docker ps
