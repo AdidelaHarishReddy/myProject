@@ -20,6 +20,7 @@ import Profile from './components/Profile';
 // Components
 import Navbar from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
+import DashboardRedirect from './components/DashboardRedirect';
 import authAPI from './api/auth';
 
 const App = () => {
@@ -28,6 +29,7 @@ const App = () => {
   useEffect(() => {
     // Check authentication on app load
     const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
     console.log('App - Initial token check:', token ? 'Token exists' : 'No token');
     
     if (token) {
@@ -35,6 +37,8 @@ const App = () => {
       authAPI.getCurrentUser(token)
         .then(response => {
           console.log('App - User fetch successful:', response.data);
+          // Store updated user data
+          localStorage.setItem('user', JSON.stringify(response.data));
           store.dispatch({
             type: 'LOGIN_SUCCESS',
             payload: { token, user: response.data }
@@ -43,6 +47,7 @@ const App = () => {
         .catch(error => {
           console.error('App - Error fetching user:', error);
           localStorage.removeItem('token');
+          localStorage.removeItem('user');
           // Explicitly set unauthenticated state
           store.dispatch({
             type: 'LOGOUT'
@@ -93,6 +98,12 @@ const App = () => {
             <Route path="/" element={
               <PrivateRoute>
                 <BuyerDashboard />
+              </PrivateRoute>
+            } />
+            
+            <Route path="/dashboard" element={
+              <PrivateRoute>
+                <DashboardRedirect />
               </PrivateRoute>
             } />
             

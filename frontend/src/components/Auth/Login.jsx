@@ -6,6 +6,7 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import authAPI from '../../api/auth';
+import { getDashboardRoute } from '../../utils/dashboardRouting';
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -37,7 +38,16 @@ const Login = () => {
       });
       
       localStorage.setItem('token', response.data.token);
-      navigate('/dashboard');
+      
+      // Store user data in localStorage for easy access
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      // Redirect based on user type
+      const userType = response.data.user?.user_type;
+      const dashboardRoute = getDashboardRoute(userType);
+      navigate(dashboardRoute);
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {

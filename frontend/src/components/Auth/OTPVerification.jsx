@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import authAPI from '../../api/auth';
+import { getDashboardRoute } from '../../utils/dashboardRouting';
 
 const OTPVerification = () => {
   const location = useLocation();
@@ -27,7 +28,16 @@ const OTPVerification = () => {
       });
       
       localStorage.setItem('token', response.data.token);
-      navigate('/dashboard');
+      
+      // Store user data in localStorage for easy access
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      // Redirect based on user type
+      const userType = response.data.user?.user_type;
+      const dashboardRoute = getDashboardRoute(userType);
+      navigate(dashboardRoute);
     } catch (err) {
       setError(err.response?.data?.message || 'Verification failed');
     } finally {
