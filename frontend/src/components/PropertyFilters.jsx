@@ -45,21 +45,35 @@ const PropertyFilters = ({
   };
 
   return (
-    <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+    <Paper elevation={3} sx={{ 
+      p: 3, 
+      position: { xs: 'static', lg: 'sticky' }, 
+      top: 20,
+      maxHeight: { xs: 'none', lg: 'calc(100vh - 40px)' },
+      overflowY: 'auto'
+    }}>
       <Typography variant="h6" gutterBottom sx={{ color: '#4267B2', mb: 3, textAlign: 'center' }}>
         🔍 Filter Properties
       </Typography>
       
       <Box component="form" onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Property Type</InputLabel>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Property Type Filter */}
+          <Box>
+            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+              Property Type
+            </Typography>
+            <FormControl fullWidth size="small">
               <Select
                 value={filters.property_type || ''}
                 onChange={handleChange('property_type')}
-                label="Property Type"
                 displayEmpty
+                sx={{ 
+                  '& .MuiSelect-select': { 
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: 1
+                  }
+                }}
               >
                 <MenuItem value="">
                   <em>All Types</em>
@@ -72,10 +86,11 @@ const PropertyFilters = ({
                 <MenuItem value="COMMERCIAL">🏪 Commercial Space</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={3}>
-            <Typography variant="body2" gutterBottom>
+          {/* Price Range Filter */}
+          <Box>
+            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
               💰 Price Range (₹)
             </Typography>
             <Slider
@@ -106,10 +121,11 @@ const PropertyFilters = ({
                 ₹{(filters.priceRange?.[1] || 10000000).toLocaleString()}
               </Typography>
             </Box>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={3}>
-            <Typography variant="body2" gutterBottom>
+          {/* Area Range Filter */}
+          <Box>
+            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
               📏 Area Range
             </Typography>
             <Slider
@@ -139,15 +155,23 @@ const PropertyFilters = ({
                 {filters.areaRange?.[1] || 10000}
               </Typography>
             </Box>
-          </Grid>
+          </Box>
           
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Sort By</InputLabel>
+          {/* Sort By Filter */}
+          <Box>
+            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
+              Sort By
+            </Typography>
+            <FormControl fullWidth size="small">
               <Select
                 value={filters.sortBy || 'newest'}
                 onChange={handleChange('sortBy')}
-                label="Sort By"
+                sx={{ 
+                  '& .MuiSelect-select': { 
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: 1
+                  }
+                }}
               >
                 <MenuItem value="newest">🆕 Newest First</MenuItem>
                 <MenuItem value="oldest">📅 Oldest First</MenuItem>
@@ -157,14 +181,15 @@ const PropertyFilters = ({
                 <MenuItem value="area_high">📏 Area: High to Low</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
         
-        <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 3 }}>
           <Button
             type="submit"
             variant="contained"
             disabled={isFiltering}
+            fullWidth
             sx={{ 
               backgroundColor: '#4267B2',
               '&:hover': { backgroundColor: '#365899' },
@@ -177,6 +202,7 @@ const PropertyFilters = ({
           <Button
             variant="outlined"
             onClick={handleClear}
+            fullWidth
             sx={{ 
               borderColor: '#4267B2',
               color: '#4267B2',

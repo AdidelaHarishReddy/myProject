@@ -305,8 +305,35 @@ const BuyerDashboard = () => {
         </Tabs>
       </Box>
       
-              {activeTab === 0 ? (
-          <>
+      
+      {activeTab === 0 ? (
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', lg: 'row' },
+          gap: 3,
+          alignItems: 'flex-start'
+        }}>
+          {/* Left Side - Filters (20% width on large screens, full width on mobile) */}
+          <Box sx={{ 
+            width: { xs: '100%', lg: '20%' }, 
+            flexShrink: 0,
+            order: { xs: 2, lg: 1 }
+          }}>
+            <PropertyFilters 
+              filters={safeFilters}
+              onFilterChange={handleFilterChange}
+              onApplyFilters={handleApplyFilters}
+              onClearFilters={handleClearFilters}
+              isFiltering={isFiltering}
+            />
+          </Box>
+          
+          {/* Right Side - Properties Display (80% width on large screens, full width on mobile) */}
+          <Box sx={{ 
+            width: { xs: '100%', lg: '80%' }, 
+            flexGrow: 1,
+            order: { xs: 1, lg: 2 }
+          }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h4" sx={{ color: '#4267B2' }}>
                 Properties Near You
@@ -335,14 +362,6 @@ const BuyerDashboard = () => {
               </Box>
             </Box>
             
-            <PropertyFilters 
-              filters={safeFilters}
-              onFilterChange={handleFilterChange}
-              onApplyFilters={handleApplyFilters}
-              onClearFilters={handleClearFilters}
-              isFiltering={isFiltering}
-            />
-            
             {/* Filter Status */}
             {(safeFilters.property_type || 
               safeFilters.priceRange[0] > 0 || 
@@ -354,76 +373,102 @@ const BuyerDashboard = () => {
                 Showing filtered results
               </Typography>
             )}
-          </>
-        ) : (
-        <Typography variant="h4" gutterBottom sx={{ color: '#4267B2' }}>
-          Your Shortlisted Properties
-        </Typography>
-      )}
-      
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress size={60} sx={{ color: '#4267B2' }} />
-        </Box>
-      ) : isFiltering ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress size={40} sx={{ color: '#4267B2', mb: 2 }} />
-          <Typography variant="h6" sx={{ color: '#4267B2' }}>
-            Applying filters...
-          </Typography>
-        </Box>
-      ) : properties.length === 0 ? (
-        <Box sx={{ textAlign: 'center', mt: 4 }}>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            {activeTab === 0 ? 
-              (safeFilters.property_type || 
-               safeFilters.priceRange[0] > 0 || 
-               safeFilters.priceRange[1] < 10000000 || 
-               safeFilters.areaRange[0] > 0 || 
-               safeFilters.areaRange[1] < 10000 || 
-               safeFilters.sortBy !== 'newest' 
-                ? 'No properties match your filters. Try adjusting your search criteria.' 
-                : 'No properties found matching your criteria'
-              ) : 
-              'You have no shortlisted properties'
-            }
-          </Typography>
-          
-          {activeTab === 0 && (safeFilters.property_type || 
-            safeFilters.priceRange[0] > 0 || 
-            safeFilters.priceRange[1] < 10000000 || 
-            safeFilters.areaRange[0] > 0 || 
-            safeFilters.areaRange[1] < 10000 || 
-            safeFilters.sortBy !== 'newest') && (
-            <Button
-              variant="outlined"
-              onClick={handleClearFilters}
-              sx={{ 
-                borderColor: '#4267B2',
-                color: '#4267B2',
-                '&:hover': { 
-                  borderColor: '#365899',
-                  backgroundColor: 'rgba(66, 103, 178, 0.04)'
-                }
-              }}
-            >
-              🗑️ Clear All Filters
-            </Button>
-          )}
+            
+            {/* Properties Content */}
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <CircularProgress size={60} sx={{ color: '#4267B2' }} />
+              </Box>
+            ) : isFiltering ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <CircularProgress size={40} sx={{ color: '#4267B2', mb: 2 }} />
+                <Typography variant="h6" sx={{ color: '#4267B2' }}>
+                  Applying filters...
+                </Typography>
+              </Box>
+            ) : properties.length === 0 ? (
+              <Box sx={{ textAlign: 'center', mt: 4 }}>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  {safeFilters.property_type || 
+                   safeFilters.priceRange[0] > 0 || 
+                   safeFilters.priceRange[1] < 10000000 || 
+                   safeFilters.areaRange[0] > 0 || 
+                   safeFilters.areaRange[1] < 10000 || 
+                   safeFilters.sortBy !== 'newest' 
+                    ? 'No properties match your filters. Try adjusting your search criteria.' 
+                    : 'No properties found matching your criteria'
+                  }
+                </Typography>
+                
+                {(safeFilters.property_type || 
+                  safeFilters.priceRange[0] > 0 || 
+                  safeFilters.priceRange[1] < 10000000 || 
+                  safeFilters.areaRange[0] > 0 || 
+                  safeFilters.areaRange[1] < 10000 || 
+                  safeFilters.sortBy !== 'newest') && (
+                  <Button
+                    variant="outlined"
+                    onClick={handleClearFilters}
+                    sx={{ 
+                      borderColor: '#4267B2',
+                      color: '#4267B2',
+                      '&:hover': { 
+                        borderColor: '#365899',
+                        backgroundColor: 'rgba(66, 103, 178, 0.04)'
+                      }
+                    }}
+                  >
+                    🗑️ Clear All Filters
+                  </Button>
+                )}
+              </Box>
+            ) : (
+              <Grid container spacing={3}>
+                {properties.map(property => (
+                  <Grid item key={property.id} xs={12} sm={6} md={4} lg={3}>
+                    <PropertyCard 
+                      property={property} 
+                      onShortlist={handleShortlist}
+                      onRemoveShortlist={handleRemoveShortlist}
+                      isShortlisted={isShortlisted(property.id)}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
         </Box>
       ) : (
-        <Grid container spacing={3}>
-          {properties.map(property => (
-            <Grid item key={property.id} xs={12} sm={6} md={4} lg={3}>
-              <PropertyCard 
-                property={property} 
-                onShortlist={handleShortlist}
-                onRemoveShortlist={handleRemoveShortlist}
-                isShortlisted={isShortlisted(property.id)}
-              />
+        <>
+          <Typography variant="h4" gutterBottom sx={{ color: '#4267B2' }}>
+            Your Shortlisted Properties
+          </Typography>
+          
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+              <CircularProgress size={60} sx={{ color: '#4267B2' }} />
+            </Box>
+          ) : properties.length === 0 ? (
+            <Box sx={{ textAlign: 'center', mt: 4 }}>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                You have no shortlisted properties
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {properties.map(property => (
+                <Grid item key={property.id} xs={12} sm={6} md={4} lg={3}>
+                  <PropertyCard 
+                    property={property} 
+                    onShortlist={handleShortlist}
+                    onRemoveShortlist={handleRemoveShortlist}
+                    isShortlisted={isShortlisted(property.id)}
+                  />
+                </Grid>
+              ))}
             </Grid>
-          ))}
-        </Grid>
+          )}
+        </>
       )}
     </Container>
   );
