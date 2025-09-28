@@ -41,6 +41,22 @@ class TestView(APIView):
             'timestamp': timezone.now().isoformat(),
             'request_origin': request.META.get('HTTP_ORIGIN', 'Unknown')
         })
+    
+    def post(self, request):
+        """Test endpoint to validate registration data format"""
+        return Response({
+            'message': 'Test POST endpoint working!',
+            'received_data': request.data,
+            'expected_format': {
+                'username': 'string (required)',
+                'password': 'string (required)',
+                'phone': 'string (required, min 10 digits)',
+                'user_type': 'string (required, SELLER or BUYER)',
+                'email': 'string (optional)',
+                'first_name': 'string (optional)',
+                'last_name': 'string (optional)'
+            }
+        })
 
 class UserRegisterView(APIView):
     permission_classes = [AllowAny]
@@ -49,22 +65,34 @@ class UserRegisterView(APIView):
         print(f"Registration request data: {request.data}")
         print(f"Request headers: {request.headers}")
         
-        serializer = UserRegisterSerializer(data=request.data)
-        if serializer.is_valid():
-            print("Serializer is valid, creating user...")
-            user = serializer.save()
-            otp = user.generate_otp()
-            # Send OTP via SMS or Email
-            self.send_otp(user.phone, otp)
-            print(f"User created successfully: {user.username}")
+        try:
+            serializer = UserRegisterSerializer(data=request.data)
+            if serializer.is_valid():
+                print("Serializer is valid, creating user...")
+                user = serializer.save()
+                otp = user.generate_otp()
+                # Send OTP via SMS or Email
+                self.send_otp(user.phone, otp)
+                print(f"User created successfully: {user.username}")
+                return Response({
+                    'message': 'User registered successfully. Please verify OTP.',
+                    'phone': user.phone,
+                    'otp': otp
+                }, status=status.HTTP_201_CREATED)
+            else:
+                print(f"Serializer errors: {serializer.errors}")
+                return Response({
+                    'message': 'Registration failed',
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"Unexpected error in registration: {e}")
+            import traceback
+            traceback.print_exc()
             return Response({
-                'message': 'User registered successfully. Please verify OTP.',
-                'phone': user.phone,
-                'otp': otp
-            }, status=status.HTTP_201_CREATED)
-        else:
-            print(f"Serializer errors: {serializer.errors}")
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                'message': 'Registration failed due to server error',
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def send_otp(self, phone, otp):
         # Implement SMS sending logic (Twilio, etc.)

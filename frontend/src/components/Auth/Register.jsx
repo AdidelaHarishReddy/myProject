@@ -59,7 +59,14 @@ const Register = () => {
       
       navigate('/verify-otp', { state: { phone: userData.phone } });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      console.error('Registration error:', err.response?.data);
+      if (err.response?.data?.errors) {
+        // Handle validation errors
+        const errorMessages = Object.values(err.response.data.errors).flat();
+        setError(errorMessages.join(', '));
+      } else {
+        setError(err.response?.data?.message || err.message || 'Registration failed');
+      }
     } finally {
       setLoading(false);
     }

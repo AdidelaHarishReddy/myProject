@@ -25,11 +25,51 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'password', 'email', 'phone', 'user_type', 'first_name', 'last_name']
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'email': {'required': False},
+            'first_name': {'required': False},
+            'last_name': {'required': False}
+        }
+
+    def validate_user_type(self, value):
+        """Validate user_type field"""
+        valid_types = [choice[0] for choice in User.USER_TYPE_CHOICES]
+        if value not in valid_types:
+            raise serializers.ValidationError(f"Invalid user_type. Must be one of: {valid_types}")
+        return value
+
+    def validate_username(self, value):
+        """Validate username"""
+        if not value:
+            raise serializers.ValidationError("Username is required")
+        
+        # Check if username already exists
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username already exists")
+        
+        return value
+
+    def validate_phone(self, value):
+        """Validate phone number"""
+        if not value or len(value) < 10:
+            raise serializers.ValidationError("Phone number must be at least 10 digits")
+        
+        # Check if phone number already exists
+        if User.objects.filter(phone=value).exists():
+            raise serializers.ValidationError("Phone number already exists")
+        
+        return value
 
     def create(self, validated_data):
         print(f"Creating user with data: {validated_data}")
         try:
+            # Ensure all required fields are present
+            required_fields = ['username', 'password', 'phone', 'user_type']
+            for field in required_fields:
+                if field not in validated_data:
+                    raise serializers.ValidationError(f"Missing required field: {field}")
+            
             user = User.objects.create_user(
                 username=validated_data['username'],
                 password=validated_data['password'],
