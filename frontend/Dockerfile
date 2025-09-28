@@ -5,7 +5,7 @@ RUN npm install
 COPY . .
 ###backend url####
 ARG REACT_APP_API_BASE_URL
-ENV REACT_APP_API_BASE_URL=http://65.0.45.212:8000
+ENV REACT_APP_API_BASE_URL=http://13.204.43.250:8000
 RUN echo "Building frontend with API URL: $REACT_APP_API_BASE_URL"
 RUN npm run build
 FROM nginx:latest
