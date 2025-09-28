@@ -28,16 +28,22 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            password=validated_data['password'],
-            email=validated_data.get('email', ''),
-            phone=validated_data['phone'],
-            user_type=validated_data['user_type'],
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', '')
-        )
-        return user
+        print(f"Creating user with data: {validated_data}")
+        try:
+            user = User.objects.create_user(
+                username=validated_data['username'],
+                password=validated_data['password'],
+                email=validated_data.get('email', ''),
+                phone=validated_data['phone'],
+                user_type=validated_data['user_type'],
+                first_name=validated_data.get('first_name', ''),
+                last_name=validated_data.get('last_name', '')
+            )
+            print(f"User created successfully: {user.id}")
+            return user
+        except Exception as e:
+            print(f"Error creating user: {e}")
+            raise e
 
 class UserLoginSerializer(serializers.Serializer):
     phone = serializers.CharField()

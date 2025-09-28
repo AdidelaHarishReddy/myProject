@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import authAPI from '../../api/auth';
+import testAPI from '../../api/test';
 
 const Register = () => {
   const [userData, setUserData] = useState({
@@ -18,10 +19,20 @@ const Register = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [testResult, setTestResult] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (prop) => (event) => {
     setUserData({ ...userData, [prop]: event.target.value });
+  };
+
+  const testConnection = async () => {
+    try {
+      const response = await testAPI.testConnection();
+      setTestResult(`✅ Connection successful: ${response.data.message}`);
+    } catch (err) {
+      setTestResult(`❌ Connection failed: ${err.message}`);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -65,6 +76,22 @@ const Register = () => {
           {error}
         </Typography>
       )}
+
+      {testResult && (
+        <Typography color={testResult.includes('✅') ? 'success' : 'error'} align="center" gutterBottom>
+          {testResult}
+        </Typography>
+      )}
+
+      <Box sx={{ mb: 2, textAlign: 'center' }}>
+        <Button
+          variant="outlined"
+          onClick={testConnection}
+          sx={{ mb: 2 }}
+        >
+          Test Backend Connection
+        </Button>
+      </Box>
       
       <form onSubmit={handleSubmit}>
         <TextField

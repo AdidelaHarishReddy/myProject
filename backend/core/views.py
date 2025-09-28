@@ -32,22 +32,39 @@ from django.utils import timezone
 from django.conf import settings
 from rest_framework.permissions import AllowAny
 
+class TestView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        return Response({
+            'message': 'Backend is working!',
+            'timestamp': timezone.now().isoformat(),
+            'request_origin': request.META.get('HTTP_ORIGIN', 'Unknown')
+        })
+
 class UserRegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        print(f"Registration request data: {request.data}")
+        print(f"Request headers: {request.headers}")
+        
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
+            print("Serializer is valid, creating user...")
             user = serializer.save()
             otp = user.generate_otp()
             # Send OTP via SMS or Email
             self.send_otp(user.phone, otp)
+            print(f"User created successfully: {user.username}")
             return Response({
                 'message': 'User registered successfully. Please verify OTP.',
                 'phone': user.phone,
                 'otp': otp
             }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            print(f"Serializer errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def send_otp(self, phone, otp):
         # Implement SMS sending logic (Twilio, etc.)
