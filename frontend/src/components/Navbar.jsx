@@ -41,6 +41,14 @@ const Navbar = () => {
         
         {isAuthenticated ? (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Button 
+              color="inherit" 
+              component={Link} 
+              to="/dashboard"
+              sx={{ mr: 2 }}
+            >
+              Dashboard
+            </Button>
             {user?.user_type === 'BUYER' && (
               <Button 
                 color="inherit" 
@@ -58,7 +66,7 @@ const Navbar = () => {
                 to="/seller"
                 sx={{ mr: 2 }}
               >
-                Seller Dashboard
+                My Properties
               </Button>
             )}
             

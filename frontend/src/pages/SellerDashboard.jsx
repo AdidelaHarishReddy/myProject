@@ -5,6 +5,7 @@ import {
   DialogActions, TextField, FormControl, InputLabel, 
   Select, MenuItem, Slider, Paper 
 } from '@mui/material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import PropertyCard from '../components/PropertyCard';
 import propertyAPI from '../api/properties';
 import locationAPI from '../api/locations';
@@ -456,6 +457,25 @@ const SellerDashboard = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Back to Dashboard Button */}
+      <Box sx={{ mb: 3 }}>
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/dashboard')}
+          sx={{ 
+            borderColor: '#4267B2',
+            color: '#4267B2',
+            '&:hover': { 
+              borderColor: '#365899',
+              backgroundColor: 'rgba(66, 103, 178, 0.04)'
+            }
+          }}
+        >
+          Back to Dashboard
+        </Button>
+      </Box>
+
       {/* Header Section */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4" sx={{ color: '#4267B2' }}>

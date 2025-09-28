@@ -10,6 +10,7 @@ import theme from './styles/theme';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import OTPVerification from './components/Auth/OTPVerification';
+import GeneralDashboard from './pages/GeneralDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
 import SellerDashboard from './pages/SellerDashboard';
 import EditProperty from './pages/EditProperty';
@@ -103,7 +104,7 @@ const App = () => {
             
             <Route path="/dashboard" element={
               <PrivateRoute>
-                <DashboardRedirect />
+                <GeneralDashboard />
               </PrivateRoute>
             } />
             

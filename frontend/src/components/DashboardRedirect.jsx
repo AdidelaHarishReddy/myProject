@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardRoute, getUserType } from '../utils/dashboardRouting';
+import { getDashboardRoute } from '../utils/dashboardRouting';
 
 const DashboardRedirect = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userType = getUserType();
-    const dashboardRoute = getDashboardRoute(userType);
+    // Always redirect to general dashboard
+    const dashboardRoute = getDashboardRoute();
     navigate(dashboardRoute, { replace: true });
   }, [navigate]);
 

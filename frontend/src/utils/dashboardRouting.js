@@ -1,5 +1,11 @@
 // Utility function to get the appropriate dashboard route based on user type
 export const getDashboardRoute = (userType) => {
+  // Always redirect to general dashboard first
+  return '/dashboard';
+};
+
+// Utility function to get the specific dashboard route based on user type
+export const getSpecificDashboardRoute = (userType) => {
   switch (userType) {
     case 'SELLER':
       return '/seller';
