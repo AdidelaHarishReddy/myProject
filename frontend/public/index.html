@@ -37,8 +37,11 @@
   <link rel="preconnect" href="https://api.yourdomain.com">
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="%PUBLIC_URL%/static/css/main.css" as="style">
-  <link rel="preload" href="%PUBLIC_URL%/static/js/main.js" as="script">
+  <!--<link rel="preload" href="%PUBLIC_URL%/static/css/main.css" as="style">-->
+  <!--<link rel="preload" href="%PUBLIC_URL%/static/js/main.js" as="script">-->
+  <!-- Preload is handled automatically by React during build -->
+  <!-- Removed manual preload tags to avoid 404s on hashed files -->
+
   
   <!-- Font loading -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
