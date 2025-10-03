@@ -11,6 +11,8 @@ RUN npm run build
 
 FROM nginx:latest
 COPY --from=build /app/build /usr/share/nginx/html
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Add a script to overwrite env.js dynamically
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
