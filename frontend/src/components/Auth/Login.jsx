@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import authAPI from '../../api/auth';
 import { getDashboardRoute } from '../../utils/dashboardRouting';
 
@@ -17,6 +18,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleChange = (prop) => (event) => {
     setCredentials({ ...credentials, [prop]: event.target.value });
@@ -44,9 +46,19 @@ const Login = () => {
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       
+      // Update Redux store with login success
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: {
+          token: response.data.token,
+          user: response.data.user
+        }
+      });
+      
       // Redirect based on user type
       const userType = response.data.user?.user_type;
       const dashboardRoute = getDashboardRoute(userType);
+      console.log('Login successful, redirecting to:', dashboardRoute);
       navigate(dashboardRoute);
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');

@@ -33,8 +33,23 @@ const App = () => {
     const userData = localStorage.getItem('user');
     console.log('App - Initial token check:', token ? 'Token exists' : 'No token');
     
-    if (token) {
-      console.log('App - Attempting to fetch user with token');
+    if (token && userData) {
+      console.log('App - Token and user data exist, setting authenticated state');
+      try {
+        const user = JSON.parse(userData);
+        store.dispatch({
+          type: 'LOGIN_SUCCESS',
+          payload: { token, user }
+        });
+      } catch (error) {
+        console.error('App - Error parsing user data:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        store.dispatch({ type: 'LOGOUT' });
+      }
+      setIsLoading(false);
+    } else if (token) {
+      console.log('App - Token exists but no user data, fetching user');
       authAPI.getCurrentUser(token)
         .then(response => {
           console.log('App - User fetch successful:', response.data);
