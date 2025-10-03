@@ -57,6 +57,7 @@ const Register = () => {
         user_type: userData.user_type
       });
       
+      console.log('Registration successful, redirecting to OTP verification');
       navigate('/verify-otp', { state: { phone: userData.phone } });
     } catch (err) {
       console.error('Registration error:', err.response?.data);

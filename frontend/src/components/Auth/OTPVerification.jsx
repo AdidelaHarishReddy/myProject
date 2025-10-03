@@ -4,12 +4,14 @@ import {
   FormControl, InputLabel, OutlinedInput 
 } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import authAPI from '../../api/auth';
 import { getDashboardRoute } from '../../utils/dashboardRouting';
 
 const OTPVerification = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,9 +36,19 @@ const OTPVerification = () => {
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       
+      // Update Redux store with login success
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: {
+          token: response.data.token,
+          user: response.data.user
+        }
+      });
+      
       // Redirect based on user type
       const userType = response.data.user?.user_type;
       const dashboardRoute = getDashboardRoute(userType);
+      console.log('OTP verified successfully, redirecting to:', dashboardRoute);
       navigate(dashboardRoute);
     } catch (err) {
       setError(err.response?.data?.message || 'Verification failed');

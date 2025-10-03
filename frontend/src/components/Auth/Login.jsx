@@ -61,7 +61,12 @@ const Login = () => {
       console.log('Login successful, redirecting to:', dashboardRoute);
       navigate(dashboardRoute);
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      const errorMessage = err.response?.data?.message || 'Login failed';
+      if (errorMessage.includes('not verified')) {
+        setError('Account not verified. Please complete OTP verification first. If you just registered, check your phone for the OTP.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
