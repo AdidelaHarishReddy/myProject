@@ -120,25 +120,28 @@ const BuyerDashboard = () => {
         }
         
         // Ensure each property has the required structure
-        const formattedProperties = propertiesData.map(property => ({
-          ...property,
-          // Ensure images array exists
-          images: property.images || [],
-          // Ensure location object exists
-          location: property.location || {
-            state: 'Unknown',
-            district: 'Unknown',
-            sub_district: 'Unknown',
-            village: 'Unknown',
-            pin_code: 'Unknown'
-          },
-          // Ensure other required fields exist
-          title: property.title || 'Untitled Property',
-          price: property.price || 0,
-          area: property.area || 0,
-          area_display: property.area_display || 'Area not specified',
-          property_type: property.property_type || 'UNKNOWN'
-        }));
+        const formattedProperties = propertiesData.map(property => {
+          console.log('BuyerDashboard - Processing property:', property.id, 'Images:', property.images);
+          return {
+            ...property,
+            // Ensure images array exists
+            images: property.images || [],
+            // Ensure location object exists
+            location: property.location || {
+              state: 'Unknown',
+              district: 'Unknown',
+              sub_district: 'Unknown',
+              village: 'Unknown',
+              pin_code: 'Unknown'
+            },
+            // Ensure other required fields exist
+            title: property.title || 'Untitled Property',
+            price: property.price || 0,
+            area: property.area || 0,
+            area_display: property.area_display || 'Area not specified',
+            property_type: property.property_type || 'UNKNOWN'
+          };
+        });
         
         setProperties(formattedProperties);
         setLoading(false);

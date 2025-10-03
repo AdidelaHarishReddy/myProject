@@ -58,9 +58,20 @@ const PropertyCard = ({ property, onShortlist, onRemoveShortlist, isShortlisted,
 
   // Get the first image or use placeholder
   const getImageUrl = () => {
-    if (images && images.length > 0 && images[0] && images[0].image) {
-      return images[0].image;
+    console.log('PropertyCard - Images data:', images);
+    if (images && images.length > 0 && images[0]) {
+      // Try image_url first, then fall back to image
+      const firstImage = images[0];
+      console.log('PropertyCard - First image:', firstImage);
+      if (firstImage.image_url) {
+        console.log('PropertyCard - Using image_url:', firstImage.image_url);
+        return firstImage.image_url;
+      } else if (firstImage.image) {
+        console.log('PropertyCard - Using image:', firstImage.image);
+        return firstImage.image;
+      }
     }
+    console.log('PropertyCard - Using placeholder image');
     return PLACEHOLDER_IMAGE;
   };
 

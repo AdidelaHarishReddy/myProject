@@ -112,25 +112,28 @@ const SellerDashboard = () => {
         }
         
         // Ensure each property has the required structure
-        const formattedProperties = propertiesData.map(property => ({
-          ...property,
-          // Ensure images array exists
-          images: property.images || [],
-          // Ensure location object exists
-          location: property.location || {
-            state: 'Unknown',
-            district: 'Unknown',
-            sub_district: 'Unknown',
-            village: 'Unknown',
-            pin_code: 'Unknown'
-          },
-          // Ensure other required fields exist
-          title: property.title || 'Untitled Property',
-          price: property.price || 0,
-          area: property.area || 0,
-          area_display: property.area_display || 'Area not specified',
-          property_type: property.property_type || 'UNKNOWN'
-        }));
+        const formattedProperties = propertiesData.map(property => {
+          console.log('SellerDashboard - Processing property:', property.id, 'Images:', property.images);
+          return {
+            ...property,
+            // Ensure images array exists
+            images: property.images || [],
+            // Ensure location object exists
+            location: property.location || {
+              state: 'Unknown',
+              district: 'Unknown',
+              sub_district: 'Unknown',
+              village: 'Unknown',
+              pin_code: 'Unknown'
+            },
+            // Ensure other required fields exist
+            title: property.title || 'Untitled Property',
+            price: property.price || 0,
+            area: property.area || 0,
+            area_display: property.area_display || 'Area not specified',
+            property_type: property.property_type || 'UNKNOWN'
+          };
+        });
         
         setProperties(formattedProperties);
         setLoading(false);
@@ -315,9 +318,12 @@ const SellerDashboard = () => {
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by this browser.');
+      alert('Geolocation is not supported by this browser. Please use HTTPS or enter coordinates manually.');
       return;
     }
+
+    // Show loading state
+    alert('Getting your current location... Please allow location access when prompted.');
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -327,16 +333,33 @@ const SellerDashboard = () => {
           latitude: latitude.toFixed(6),
           longitude: longitude.toFixed(6)
         }));
-        alert(`Current location coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        alert(`✅ Current location found: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
       },
       (error) => {
-        console.error('Error getting current location:', error);
-        alert('Error getting current location. Please enter coordinates manually.');
+        console.error('Geolocation error:', error);
+        let errorMessage = 'Error getting current location. ';
+        
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Location access denied. Please allow location access and try again.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information unavailable. Please try again or enter coordinates manually.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out. Please try again or enter coordinates manually.';
+            break;
+          default:
+            errorMessage += 'Unknown error occurred. Please enter coordinates manually.';
+            break;
+        }
+        
+        alert(errorMessage);
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+        timeout: 15000,
+        maximumAge: 300000 // 5 minutes
       }
     );
   };
@@ -377,7 +400,14 @@ const SellerDashboard = () => {
   };
 
   const handleImageChange = (e) => {
-    setSelectedImages([...e.target.files]);
+    const files = Array.from(e.target.files);
+    // Limit to 10 images
+    const limitedFiles = files.slice(0, 10);
+    setSelectedImages(limitedFiles);
+    
+    if (files.length > 10) {
+      alert(`⚠️ Maximum 10 images allowed. Only first 10 images will be uploaded.`);
+    }
   };
 
   const handleSubmit = () => {
@@ -1239,7 +1269,7 @@ const SellerDashboard = () => {
                 fullWidth
                 sx={{ mt: 2 }}
               >
-                Upload Images
+                Upload Images (Max 10)
                 <input
                   type="file"
                   hidden
@@ -1249,9 +1279,16 @@ const SellerDashboard = () => {
                 />
               </Button>
               {selectedImages.length > 0 && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {selectedImages.length} image(s) selected
-                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="body2" color="primary">
+                    📸 {selectedImages.length} image(s) selected (Max: 10)
+                  </Typography>
+                  {selectedImages.length > 10 && (
+                    <Typography variant="caption" color="error">
+                      ⚠️ Please select maximum 10 images. Only first 10 will be uploaded.
+                    </Typography>
+                  )}
+                </Box>
               )}
             </Grid>
           </Grid>
