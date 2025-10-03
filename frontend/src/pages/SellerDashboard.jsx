@@ -41,6 +41,8 @@ const SellerDashboard = () => {
     longitude: '',
     images: []
   });
+  const [locationSearch, setLocationSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const [selectedImages, setSelectedImages] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -309,6 +311,69 @@ const SellerDashboard = () => {
       console.error('Error getting coordinates:', error);
       alert('Error getting coordinates. Please enter manually.');
     }
+  };
+
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setNewProperty(prev => ({
+          ...prev,
+          latitude: latitude.toFixed(6),
+          longitude: longitude.toFixed(6)
+        }));
+        alert(`Current location coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+      },
+      (error) => {
+        console.error('Error getting current location:', error);
+        alert('Error getting current location. Please enter coordinates manually.');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  const openMapSelector = () => {
+    const mapUrl = `https://www.openstreetmap.org/?mlat=${newProperty.latitude || 19.0760}&mlon=${newProperty.longitude || 72.8777}&zoom=15`;
+    window.open(mapUrl, '_blank', 'width=800,height=600');
+    alert('Map opened in new window. Please copy the coordinates from the map and enter them manually.');
+  };
+
+  const searchLocation = async (query) => {
+    if (!query || query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=in`
+      );
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (error) {
+      console.error('Error searching location:', error);
+      setSearchResults([]);
+    }
+  };
+
+  const selectLocationFromSearch = (result) => {
+    const { lat, lon, display_name } = result;
+    setNewProperty(prev => ({
+      ...prev,
+      latitude: parseFloat(lat).toFixed(6),
+      longitude: parseFloat(lon).toFixed(6)
+    }));
+    setLocationSearch(display_name);
+    setSearchResults([]);
   };
 
   const handleImageChange = (e) => {
@@ -856,12 +921,54 @@ const SellerDashboard = () => {
                   })}
                   label="Property Type"
                 >
-                  <MenuItem value="AGRICULTURE">Agriculture Land</MenuItem>
-                  <MenuItem value="OPEN_PLOT">Open Plot</MenuItem>
-                  <MenuItem value="FLAT">Flat</MenuItem>
-                  <MenuItem value="HOUSE">Independent House</MenuItem>
-                  <MenuItem value="BUILDING">Building</MenuItem>
-                  <MenuItem value="COMMERCIAL">Commercial Space</MenuItem>
+                  <MenuItem value="AGRICULTURE">
+                    <Box>
+                      <Typography variant="body1">🌾 Agriculture Land</Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Farmland, agricultural plots, cultivation land
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="OPEN_PLOT">
+                    <Box>
+                      <Typography variant="body1">🏞️ Open Plot</Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Vacant land, residential plots, development plots
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="FLAT">
+                    <Box>
+                      <Typography variant="body1">🏢 Flat/Apartment</Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Apartment units, condominiums, residential flats
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="HOUSE">
+                    <Box>
+                      <Typography variant="body1">🏠 Independent House</Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Standalone houses, villas, bungalows
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="BUILDING">
+                    <Box>
+                      <Typography variant="body1">🏗️ Building</Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Complete buildings, multi-story structures
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="COMMERCIAL">
+                    <Box>
+                      <Typography variant="body1">🏪 Commercial Space</Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Shops, offices, retail spaces, commercial properties
+                      </Typography>
+                    </Box>
+                  </MenuItem>
                 </Select>
               </FormControl>
               
@@ -1009,15 +1116,74 @@ const SellerDashboard = () => {
                 <Typography variant="subtitle2" gutterBottom>
                   Location Coordinates (optional)
                 </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={getCoordinatesFromLocation}
-                  sx={{ mb: 2 }}
-                  disabled={!newProperty.state || !newProperty.district || !newProperty.sub_district || !newProperty.village}
-                >
-                  Get Coordinates from Location
-                </Button>
+                
+                {/* Location Search */}
+                <TextField
+                  label="Search Location"
+                  fullWidth
+                  margin="normal"
+                  value={locationSearch}
+                  onChange={(e) => {
+                    setLocationSearch(e.target.value);
+                    searchLocation(e.target.value);
+                  }}
+                  placeholder="Search for a place (e.g., Mumbai, Maharashtra)"
+                  helperText="Type to search for locations and get coordinates automatically"
+                />
+                
+                {/* Search Results */}
+                {searchResults.length > 0 && (
+                  <Box sx={{ maxHeight: 200, overflowY: 'auto', border: 1, borderColor: 'divider', borderRadius: 1, p: 1, mb: 2 }}>
+                    {searchResults.map((result, index) => (
+                      <Box
+                        key={index}
+                        sx={{
+                          p: 1,
+                          cursor: 'pointer',
+                          '&:hover': { bgcolor: 'action.hover' },
+                          borderBottom: index < searchResults.length - 1 ? 1 : 0,
+                          borderColor: 'divider'
+                        }}
+                        onClick={() => selectLocationFromSearch(result)}
+                      >
+                        <Typography variant="body2" fontWeight="bold">
+                          {result.display_name.split(',')[0]}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          {result.display_name}
+                        </Typography>
+                        <Typography variant="caption" color="primary" sx={{ display: 'block' }}>
+                          📍 {parseFloat(result.lat).toFixed(4)}, {parseFloat(result.lon).toFixed(4)}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+                
+                <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={getCoordinatesFromLocation}
+                    disabled={!newProperty.state || !newProperty.district || !newProperty.sub_district || !newProperty.village}
+                  >
+                    📍 Get from Location
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={getCurrentLocation}
+                  >
+                    📱 Use Current Location
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={openMapSelector}
+                  >
+                    🗺️ Select on Map
+                  </Button>
+                </Box>
               </Box>
               
               <Grid container spacing={2}>
@@ -1031,6 +1197,7 @@ const SellerDashboard = () => {
                     placeholder="e.g., 19.0760"
                     value={newProperty.latitude}
                     onChange={(e) => setNewProperty({ ...newProperty, latitude: e.target.value })}
+                    helperText="North-South position (-90 to 90)"
                   />
                 </Grid>
                 <Grid item xs={6}>
@@ -1043,9 +1210,28 @@ const SellerDashboard = () => {
                     placeholder="e.g., 72.8777"
                     value={newProperty.longitude}
                     onChange={(e) => setNewProperty({ ...newProperty, longitude: e.target.value })}
+                    helperText="East-West position (-180 to 180)"
                   />
                 </Grid>
               </Grid>
+              
+              {newProperty.latitude && newProperty.longitude && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                  <Typography variant="body2" color="textSecondary">
+                    📍 Coordinates: {newProperty.latitude}, {newProperty.longitude}
+                  </Typography>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      const mapUrl = `https://www.google.com/maps?q=${newProperty.latitude},${newProperty.longitude}`;
+                      window.open(mapUrl, '_blank');
+                    }}
+                    sx={{ mt: 1 }}
+                  >
+                    View on Google Maps
+                  </Button>
+                </Box>
+              )}
               
               <Button
                 variant="contained"
