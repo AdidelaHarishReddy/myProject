@@ -219,24 +219,223 @@ const getDistricts = async (state) => {
     if (india?.districtsByState?.[state]) {
       const full = india.districtsByState[state] || [];
       const merged = Array.from(new Set([...(full || []), ...list])).sort((a,b) => a.localeCompare(b));
+      // Ensure Andaman and Nicobar Islands has the three official districts
+      if (state === 'Andaman and Nicobar Islands') {
+        const andaman = ['North and Middle Andaman', 'South Andaman', 'Nicobar'];
+        return { districts: Array.from(new Set([...merged, ...andaman])).sort((a,b) => a.localeCompare(b)) };
+      }
+      // Ensure Andhra Pradesh (26 districts)
+      if (state === 'Andhra Pradesh') {
+        const ap = [
+          'Alluri Sitharama Raju', 'Anakapalli', 'Anantapur', 'Annamayya', 'Bapatla', 'Chittoor',
+          'Dr. B.R. Ambedkar Konaseema', 'East Godavari', 'Eluru', 'Guntur', 'Kakinada', 'Krishna',
+          'Kurnool', 'Nandyal', 'NTR', 'Palnadu', 'Parvathipuram Manyam', 'Prakasam', 'Srikakulam',
+          'Sri Sathya Sai', 'SPSA Nellore', 'Tirupati', 'Visakhapatnam', 'Vizianagaram', 'YSR (Kadapa)',
+          'West Godavari'
+        ];
+        return { districts: Array.from(new Set([...merged, ...ap])).sort((a,b) => a.localeCompare(b)) };
+      }
+      // Ensure Arunachal Pradesh (override list from user)
+      if (state === 'Arunachal Pradesh') {
+        const arp = [
+          'Anjaw', 'Changlang', 'Dibang Valley', 'East Kameng', 'East Siang', 'Kamle',
+          'Keyi Panyor', 'Kurung Kumey', 'Lohit', 'Longding', 'Lower Dibang Valley', 'Lower Siang',
+          'Lower Subansiri', 'Namsai', 'Pakke-Kessang', 'Papum Pare', 'Siang', 'Tawang', 'Tirap',
+          'Upper Siang', 'Upper Subansiri', 'West Kameng', 'West Siang', 'Lakhimpur', 'Bichom'
+        ];
+        return { districts: Array.from(new Set([...merged, ...arp])).sort((a,b) => a.localeCompare(b)) };
+      }
+      // Ensure Assam (35 districts)
+      if (state === 'Assam') {
+        const asm = [
+          'Baksa','Barpeta','Biswanath','Bongaigaon','Cachar','Charaideo','Chirang','Darrang','Dhemaji',
+          'Dhubri','Dibrugarh','Dima Hasao','Goalpara','Golaghat','Hailakandi','Hojai','Jorhat','Kamrup',
+          'Kamrup Metropolitan','Karbi Anglong','Karimganj','Kokrajhar','Lakhimpur','Majuli','Morigaon',
+          'Nagaon','Nalbari','Sivasagar','Sonitpur','South Salmara-Mankachar','Tamulpur','Tinsukia',
+          'Udalguri','West Karbi Anglong'
+        ];
+        return { districts: Array.from(new Set([...merged, ...asm])).sort((a,b) => a.localeCompare(b)) };
+      }
+      // Ensure Chandigarh (3 subdivisions)
+      if (state === 'Chandigarh') {
+        const chd = ['Central', 'East', 'West'];
+        return { districts: Array.from(new Set([...merged, ...chd])).sort((a,b) => a.localeCompare(b)) };
+      }
+      // Ensure Bihar (38 districts)
+      if (state === 'Bihar') {
+        const bhr = [
+          'Araria','Arwal','Aurangabad','Banka','Begusarai','Bhagalpur','Bhojpur','Buxar','Darbhanga',
+          'East Champaran (Purba Champaran)','Gaya','Gopalganj','Jamui','Jehanabad','Kaimur','Katihar',
+          'Khagaria','Kishanganj','Lakhisarai','Madhepura','Madhubani','Munger','Muzaffarpur','Nalanda',
+          'Nawada','Patna','Purnia','Rohtas','Saharsa','Samastipur','Saran','Sheikhpura','Sheohar',
+          'Sitamarhi','Siwan','Supaul','Vaishali','West Champaran (Pashchim Champaran)'
+        ];
+        return { districts: Array.from(new Set([...merged, ...bhr])).sort((a,b) => a.localeCompare(b)) };
+      }
+      // Ensure Chhattisgarh (33 districts)
+      if (state === 'Chhattisgarh') {
+        const cgh = [
+          'Balod','Baloda Bazar','Balrampur-Ramanujganj','Bastar','Bemetara','Bijapur','Bilaspur',
+          'Dantewada (Dakshin Bastar)','Dhamtari','Durg','Gariaband','Gaurela-Pendra-Marwahi',
+          'Janjgir-Champa','Jashpur','Kabirdham (Kawardha)','Kanker (Uttar Bastar)',
+          'Khairagarh-Chhuikhadan-Gandai','Kondagaon','Korba','Koriya','Mahasamund',
+          'Manendragarh-Chirmiri-Bharatpur','Mohla-Manpur-Ambagarh Chowki','Mungeli','Narayanpur',
+          'Raigarh','Raipur','Rajnandgaon','Sarangarh-Bilaigarh','Sukma','Surajpur','Surguja','Sakti'
+        ];
+        return { districts: Array.from(new Set([...merged, ...cgh])).sort((a,b) => a.localeCompare(b)) };
+      }
       return { districts: merged };
     }
 
-    if (list.length) return { districts: list.sort((a,b) => a.localeCompare(b)) };
+    if (list.length) {
+      // Ensure Andaman districts when backend provides partial list
+      if (state === 'Andaman and Nicobar Islands') {
+        const andaman = ['North and Middle Andaman', 'South Andaman', 'Nicobar'];
+        const merged = Array.from(new Set([...(list || []), ...andaman])).sort((a,b) => a.localeCompare(b));
+        return { districts: merged };
+      }
+      if (state === 'Andhra Pradesh') {
+        const ap = [
+          'Alluri Sitharama Raju', 'Anakapalli', 'Anantapur', 'Annamayya', 'Bapatla', 'Chittoor',
+          'Dr. B.R. Ambedkar Konaseema', 'East Godavari', 'Eluru', 'Guntur', 'Kakinada', 'Krishna',
+          'Kurnool', 'Nandyal', 'NTR', 'Palnadu', 'Parvathipuram Manyam', 'Prakasam', 'Srikakulam',
+          'Sri Sathya Sai', 'SPSA Nellore', 'Tirupati', 'Visakhapatnam', 'Vizianagaram', 'YSR (Kadapa)',
+          'West Godavari'
+        ];
+        const merged = Array.from(new Set([...(list || []), ...ap])).sort((a,b) => a.localeCompare(b));
+        return { districts: merged };
+      }
+      if (state === 'Arunachal Pradesh') {
+        const arp = [
+          'Anjaw', 'Changlang', 'Dibang Valley', 'East Kameng', 'East Siang', 'Kamle',
+          'Keyi Panyor', 'Kurung Kumey', 'Lohit', 'Longding', 'Lower Dibang Valley', 'Lower Siang',
+          'Lower Subansiri', 'Namsai', 'Pakke-Kessang', 'Papum Pare', 'Siang', 'Tawang', 'Tirap',
+          'Upper Siang', 'Upper Subansiri', 'West Kameng', 'West Siang', 'Lakhimpur', 'Bichom'
+        ];
+        const merged = Array.from(new Set([...(list || []), ...arp])).sort((a,b) => a.localeCompare(b));
+        return { districts: merged };
+      }
+      if (state === 'Chandigarh') {
+        const chd = ['Central', 'East', 'West'];
+        const merged = Array.from(new Set([...(list || []), ...chd])).sort((a,b) => a.localeCompare(b));
+        return { districts: merged };
+      }
+      if (state === 'Assam') {
+        const asm = [
+          'Baksa','Barpeta','Biswanath','Bongaigaon','Cachar','Charaideo','Chirang','Darrang','Dhemaji',
+          'Dhubri','Dibrugarh','Dima Hasao','Goalpara','Golaghat','Hailakandi','Hojai','Jorhat','Kamrup',
+          'Kamrup Metropolitan','Karbi Anglong','Karimganj','Kokrajhar','Lakhimpur','Majuli','Morigaon',
+          'Nagaon','Nalbari','Sivasagar','Sonitpur','South Salmara-Mankachar','Tamulpur','Tinsukia',
+          'Udalguri','West Karbi Anglong'
+        ];
+        const merged = Array.from(new Set([...(list || []), ...asm])).sort((a,b) => a.localeCompare(b));
+        return { districts: merged };
+      }
+      if (state === 'Bihar') {
+        const bhr = [
+          'Araria','Arwal','Aurangabad','Banka','Begusarai','Bhagalpur','Bhojpur','Buxar','Darbhanga',
+          'East Champaran (Purba Champaran)','Gaya','Gopalganj','Jamui','Jehanabad','Kaimur','Katihar',
+          'Khagaria','Kishanganj','Lakhisarai','Madhepura','Madhubani','Munger','Muzaffarpur','Nalanda',
+          'Nawada','Patna','Purnia','Rohtas','Saharsa','Samastipur','Saran','Sheikhpura','Sheohar',
+          'Sitamarhi','Siwan','Supaul','Vaishali','West Champaran (Pashchim Champaran)'
+        ];
+        const merged = Array.from(new Set([...(list || []), ...bhr])).sort((a,b) => a.localeCompare(b));
+        return { districts: merged };
+      }
+      if (state === 'Chhattisgarh') {
+        const cgh = [
+          'Balod','Baloda Bazar','Balrampur-Ramanujganj','Bastar','Bemetara','Bijapur','Bilaspur',
+          'Dantewada (Dakshin Bastar)','Dhamtari','Durg','Gariaband','Gaurela-Pendra-Marwahi',
+          'Janjgir-Champa','Jashpur','Kabirdham (Kawardha)','Kanker (Uttar Bastar)',
+          'Khairagarh-Chhuikhadan-Gandai','Kondagaon','Korba','Koriya','Mahasamund',
+          'Manendragarh-Chirmiri-Bharatpur','Mohla-Manpur-Ambagarh Chowki','Mungeli','Narayanpur',
+          'Raigarh','Raipur','Rajnandgaon','Sarangarh-Bilaigarh','Sukma','Surajpur','Surguja','Sakti'
+        ];
+        const merged = Array.from(new Set([...(list || []), ...cgh])).sort((a,b) => a.localeCompare(b));
+        return { districts: merged };
+      }
+      return { districts: list.sort((a,b) => a.localeCompare(b)) };
+    }
 
+    // Final fallback
+    if (state === 'Andaman and Nicobar Islands') {
+      return { districts: ['North and Middle Andaman', 'South Andaman', 'Nicobar'] };
+    }
     return { districts: [] };
   } catch (error) {
     console.error('Error fetching districts:', error);
     // Fallback to public dataset
     const india = await loadIndiaData();
-    if (india?.districtsByState?.[state]) return { districts: india.districtsByState[state] };
+    if (india?.districtsByState?.[state]) {
+      const fallback = india.districtsByState[state];
+      if (state === 'Andaman and Nicobar Islands') {
+        const andaman = ['North and Middle Andaman', 'South Andaman', 'Nicobar'];
+        return { districts: Array.from(new Set([...(fallback || []), ...andaman])).sort((a,b) => a.localeCompare(b)) };
+      }
+        if (state === 'Chandigarh') {
+          const chd = ['Central', 'East', 'West'];
+          return { districts: Array.from(new Set([...(fallback || []), ...chd])).sort((a,b) => a.localeCompare(b)) };
+        }
+      if (state === 'Andhra Pradesh') {
+        const ap = [
+          'Alluri Sitharama Raju', 'Anakapalli', 'Anantapur', 'Annamayya', 'Bapatla', 'Chittoor',
+          'Dr. B.R. Ambedkar Konaseema', 'East Godavari', 'Eluru', 'Guntur', 'Kakinada', 'Krishna',
+          'Kurnool', 'Nandyal', 'NTR', 'Palnadu', 'Parvathipuram Manyam', 'Prakasam', 'Srikakulam',
+          'Sri Sathya Sai', 'SPSA Nellore', 'Tirupati', 'Visakhapatnam', 'Vizianagaram', 'YSR (Kadapa)',
+          'West Godavari'
+        ];
+        return { districts: Array.from(new Set([...(fallback || []), ...ap])).sort((a,b) => a.localeCompare(b)) };
+      }
+      if (state === 'Arunachal Pradesh') {
+        const arp = [
+          'Anjaw', 'Changlang', 'Dibang Valley', 'East Kameng', 'East Siang', 'Kamle',
+          'Keyi Panyor', 'Kurung Kumey', 'Lohit', 'Longding', 'Lower Dibang Valley', 'Lower Siang',
+          'Lower Subansiri', 'Namsai', 'Pakke-Kessang', 'Papum Pare', 'Siang', 'Tawang', 'Tirap',
+          'Upper Siang', 'Upper Subansiri', 'West Kameng', 'West Siang', 'Lakhimpur', 'Bichom'
+        ];
+        return { districts: Array.from(new Set([...(fallback || []), ...arp])).sort((a,b) => a.localeCompare(b)) };
+      }
+      if (state === 'Assam') {
+        const asm = [
+          'Baksa','Barpeta','Biswanath','Bongaigaon','Cachar','Charaideo','Chirang','Darrang','Dhemaji',
+          'Dhubri','Dibrugarh','Dima Hasao','Goalpara','Golaghat','Hailakandi','Hojai','Jorhat','Kamrup',
+          'Kamrup Metropolitan','Karbi Anglong','Karimganj','Kokrajhar','Lakhimpur','Majuli','Morigaon',
+          'Nagaon','Nalbari','Sivasagar','Sonitpur','South Salmara-Mankachar','Tamulpur','Tinsukia',
+          'Udalguri','West Karbi Anglong'
+        ];
+        return { districts: Array.from(new Set([...(fallback || []), ...asm])).sort((a,b) => a.localeCompare(b)) };
+      }
+      if (state === 'Bihar') {
+        const bhr = [
+          'Araria','Arwal','Aurangabad','Banka','Begusarai','Bhagalpur','Bhojpur','Buxar','Darbhanga',
+          'East Champaran (Purba Champaran)','Gaya','Gopalganj','Jamui','Jehanabad','Kaimur','Katihar',
+          'Khagaria','Kishanganj','Lakhisarai','Madhepura','Madhubani','Munger','Muzaffarpur','Nalanda',
+          'Nawada','Patna','Purnia','Rohtas','Saharsa','Samastipur','Saran','Sheikhpura','Sheohar',
+          'Sitamarhi','Siwan','Supaul','Vaishali','West Champaran (Pashchim Champaran)'
+        ];
+        return { districts: Array.from(new Set([...(fallback || []), ...bhr])).sort((a,b) => a.localeCompare(b)) };
+      }
+      if (state === 'Chhattisgarh') {
+        const cgh = [
+          'Balod','Baloda Bazar','Balrampur-Ramanujganj','Bastar','Bemetara','Bijapur','Bilaspur',
+          'Dantewada (Dakshin Bastar)','Dhamtari','Durg','Gariaband','Gaurela-Pendra-Marwahi',
+          'Janjgir-Champa','Jashpur','Kabirdham (Kawardha)','Kanker (Uttar Bastar)',
+          'Khairagarh-Chhuikhadan-Gandai','Kondagaon','Korba','Koriya','Mahasamund',
+          'Manendragh-Chirmiri-Bharatpur','Mohla-Manpur-Ambagarh Chowki','Mungeli','Narayanpur',
+          'Raigarh','Raipur','Rajnandgaon','Sarangarh-Bilaigarh','Sukma','Surajpur','Surguja','Sakti'
+        ];
+        return { districts: Array.from(new Set([...(fallback || []), ...cgh])).sort((a,b) => a.localeCompare(b)) };
+      }
+      return { districts: fallback };
+    }
     // Minimal fallback
     const fallbackDistricts = {
       'Maharashtra': ['Mumbai', 'Pune', 'Nagpur'],
       'Karnataka': ['Bangalore', 'Mysore', 'Mangalore'],
       'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai'],
       'Delhi': ['New Delhi', 'North Delhi', 'South Delhi'],
-      'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara']
+      'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara'],
+      'Andaman and Nicobar Islands': ['North and Middle Andaman', 'South Andaman', 'Nicobar']
     };
     return { districts: fallbackDistricts[state] || [] };
   }
