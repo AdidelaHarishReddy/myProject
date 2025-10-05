@@ -33,6 +33,49 @@ api.interceptors.request.use(
 let indiaCache = null;
 const INDIA_DATA_CACHE_KEY = 'india_states_districts_cache_v1';
 
+// Baseline complete list of Indian States (28) and Union Territories (8)
+// This guarantees full coverage even if backend/public dataset is unavailable
+const BASELINE_STATES = [
+  // States (28)
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  // Union Territories (8)
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry'
+];
+
 async function loadIndiaData() {
   if (indiaCache) return indiaCache;
   try {
@@ -110,20 +153,31 @@ const getStates = async () => {
 
     if (india) {
       // Merge backend list with full dataset; prefer full set if backend partial
-      const merged = Array.from(new Set([...(india.states || []), ...list])).sort((a,b) => a.localeCompare(b));
+      const merged = Array.from(new Set([
+        ...BASELINE_STATES,
+        ...(india.states || []),
+        ...list
+      ])).sort((a,b) => a.localeCompare(b));
       return { states: merged };
     }
 
-    if (list.length) return { states: list.sort((a,b) => a.localeCompare(b)) };
+    if (list.length) {
+      const merged = Array.from(new Set([...BASELINE_STATES, ...list])).sort((a,b) => a.localeCompare(b));
+      return { states: merged };
+    }
 
-    return { states: ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Delhi', 'Gujarat'] };
+    // Final fallback: full baseline list
+    return { states: BASELINE_STATES };
   } catch (error) {
     console.error('Error fetching states:', error);
     // Fallback to public dataset
     const india = await loadIndiaData();
-    if (india) return { states: india.states };
-    // Minimal fallback
-    return { states: ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Delhi', 'Gujarat'] };
+    if (india) {
+      const merged = Array.from(new Set([...BASELINE_STATES, ...(india.states || [])])).sort((a,b) => a.localeCompare(b));
+      return { states: merged };
+    }
+    // Final fallback: full baseline list
+    return { states: BASELINE_STATES };
   }
 };
 
