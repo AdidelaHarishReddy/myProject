@@ -29,14 +29,92 @@ api.interceptors.request.use(
   error => Promise.reject(error)
 );
 
+// ---- Client-side fallback dataset loader ----
+let indiaCache = null;
+const INDIA_DATA_CACHE_KEY = 'india_states_districts_cache_v1';
+
+async function loadIndiaData() {
+  if (indiaCache) return indiaCache;
+  try {
+    // Try cache first
+    const cached = localStorage.getItem(INDIA_DATA_CACHE_KEY);
+    if (cached) {
+      indiaCache = JSON.parse(cached);
+      return indiaCache;
+    }
+  } catch {}
+
+  // Attempt multiple public sources
+  const sources = [
+    // Commonly used GitHub dataset
+    'https://raw.githubusercontent.com/bhanuc/indian-list/master/state-and-district.json',
+    // Alternative npm CDN dataset
+    'https://cdn.jsdelivr.net/npm/india-state-district@1.0.0/india.json'
+  ];
+
+  for (const url of sources) {
+    try {
+      const resp = await fetch(url, { cache: 'no-cache' });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      const normalized = normalizeIndiaData(data);
+      if (normalized && Array.isArray(normalized.states) && normalized.states.length) {
+        indiaCache = normalized;
+        try { localStorage.setItem(INDIA_DATA_CACHE_KEY, JSON.stringify(indiaCache)); } catch {}
+        return indiaCache;
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function normalizeIndiaData(raw) {
+  // Normalize different shapes into { states: string[], districtsByState: Record<string, string[]> }
+  const result = { states: [], districtsByState: {} };
+
+  if (Array.isArray(raw) && raw[0] && raw[0].state && raw[0].districts) {
+    // Shape: [{ state: 'Maharashtra', districts: ['Mumbai', ...] }, ...]
+    raw.forEach(entry => {
+      if (!entry?.state) return;
+      result.states.push(entry.state);
+      result.districtsByState[entry.state] = Array.isArray(entry.districts) ? entry.districts : [];
+    });
+  } else if (raw && raw.states && raw.districts) {
+    // Shape: { states: ['Maharashtra', ...], districts: { 'Maharashtra': ['Mumbai', ...] } }
+    result.states = raw.states;
+    result.districtsByState = raw.districts;
+  } else if (raw && typeof raw === 'object') {
+    // Shape: { 'Maharashtra': ['Mumbai', ...], ... }
+    const states = Object.keys(raw);
+    result.states = states;
+    states.forEach(s => { result.districtsByState[s] = Array.isArray(raw[s]) ? raw[s] : []; });
+  }
+
+  // Deduplicate and sort
+  result.states = Array.from(new Set(result.states)).sort((a,b) => a.localeCompare(b));
+  Object.keys(result.districtsByState).forEach(s => {
+    const d = Array.from(new Set(result.districtsByState[s] || []));
+    result.districtsByState[s] = d.sort((a,b) => a.localeCompare(b));
+  });
+
+  return result;
+}
+
 const getStates = async () => {
   try {
     const response = await api.get('states/');
-    console.log('States response:', response.data);
-    return response.data;
+    const list = response?.data?.states || [];
+    if (list.length) return { states: list };
+    // Backend returned empty; use fallback
+    const india = await loadIndiaData();
+    if (india) return { states: india.states };
+    return { states: ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Delhi', 'Gujarat'] };
   } catch (error) {
     console.error('Error fetching states:', error);
-    // Return fallback data
+    // Fallback to public dataset
+    const india = await loadIndiaData();
+    if (india) return { states: india.states };
+    // Minimal fallback
     return { states: ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Delhi', 'Gujarat'] };
   }
 };
@@ -44,11 +122,18 @@ const getStates = async () => {
 const getDistricts = async (state) => {
   try {
     const response = await api.get(`districts/?state=${encodeURIComponent(state)}`);
-    console.log('Districts response:', response.data);
-    return response.data;
+    const list = response?.data?.districts || [];
+    if (list.length) return { districts: list };
+    // Backend returned empty; use fallback
+    const india = await loadIndiaData();
+    if (india?.districtsByState?.[state]) return { districts: india.districtsByState[state] };
+    return { districts: [] };
   } catch (error) {
     console.error('Error fetching districts:', error);
-    // Return fallback data
+    // Fallback to public dataset
+    const india = await loadIndiaData();
+    if (india?.districtsByState?.[state]) return { districts: india.districtsByState[state] };
+    // Minimal fallback
     const fallbackDistricts = {
       'Maharashtra': ['Mumbai', 'Pune', 'Nagpur'],
       'Karnataka': ['Bangalore', 'Mysore', 'Mangalore'],
