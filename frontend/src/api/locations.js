@@ -104,10 +104,18 @@ const getStates = async () => {
   try {
     const response = await api.get('states/');
     const list = response?.data?.states || [];
-    if (list.length) return { states: list };
-    // Backend returned empty; use fallback
+
+    // Load public dataset for completeness
     const india = await loadIndiaData();
-    if (india) return { states: india.states };
+
+    if (india) {
+      // Merge backend list with full dataset; prefer full set if backend partial
+      const merged = Array.from(new Set([...(india.states || []), ...list])).sort((a,b) => a.localeCompare(b));
+      return { states: merged };
+    }
+
+    if (list.length) return { states: list.sort((a,b) => a.localeCompare(b)) };
+
     return { states: ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Delhi', 'Gujarat'] };
   } catch (error) {
     console.error('Error fetching states:', error);
@@ -123,10 +131,18 @@ const getDistricts = async (state) => {
   try {
     const response = await api.get(`districts/?state=${encodeURIComponent(state)}`);
     const list = response?.data?.districts || [];
-    if (list.length) return { districts: list };
-    // Backend returned empty; use fallback
+
+    // Load public dataset for completeness
     const india = await loadIndiaData();
-    if (india?.districtsByState?.[state]) return { districts: india.districtsByState[state] };
+
+    if (india?.districtsByState?.[state]) {
+      const full = india.districtsByState[state] || [];
+      const merged = Array.from(new Set([...(full || []), ...list])).sort((a,b) => a.localeCompare(b));
+      return { districts: merged };
+    }
+
+    if (list.length) return { districts: list.sort((a,b) => a.localeCompare(b)) };
+
     return { districts: [] };
   } catch (error) {
     console.error('Error fetching districts:', error);
