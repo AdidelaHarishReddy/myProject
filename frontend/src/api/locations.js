@@ -87,26 +87,53 @@ async function loadIndiaData() {
     }
   } catch {}
 
-  // Attempt multiple public sources
+  // Attempt multiple public sources and MERGE them for completeness
   const sources = [
     // Commonly used GitHub dataset
     'https://raw.githubusercontent.com/bhanuc/indian-list/master/state-and-district.json',
     // Alternative npm CDN dataset
-    'https://cdn.jsdelivr.net/npm/india-state-district@1.0.0/india.json'
+    'https://cdn.jsdelivr.net/npm/india-state-district@1.0.0/india.json',
+    // Additional community dataset
+    'https://raw.githubusercontent.com/nisrulz/india_cities/master/states_and_districts.json'
   ];
+
+  const aggregate = { states: [...BASELINE_STATES], districtsByState: {} };
+  BASELINE_STATES.forEach(s => { aggregate.districtsByState[s] = aggregate.districtsByState[s] || []; });
 
   for (const url of sources) {
     try {
-      const resp = await fetch(url, { cache: 'no-cache' });
+      const resp = await fetch(url, { cache: 'no-cache', mode: 'cors' });
       if (!resp.ok) continue;
       const data = await resp.json();
       const normalized = normalizeIndiaData(data);
       if (normalized && Array.isArray(normalized.states) && normalized.states.length) {
-        indiaCache = normalized;
-        try { localStorage.setItem(INDIA_DATA_CACHE_KEY, JSON.stringify(indiaCache)); } catch {}
-        return indiaCache;
+        // Merge states
+        normalized.states.forEach(s => {
+          if (s) aggregate.states.push(s);
+        });
+        // Merge districts
+        Object.keys(normalized.districtsByState || {}).forEach(state => {
+          aggregate.districtsByState[state] = Array.from(new Set([...
+            (aggregate.districtsByState[state] || []),
+            ...(normalized.districtsByState[state] || [])
+          ]));
+        });
       }
     } catch {}
+  }
+
+  // Deduplicate and sort
+  aggregate.states = Array.from(new Set(aggregate.states)).sort((a,b) => a.localeCompare(b));
+  aggregate.states.forEach(s => {
+    const d = Array.from(new Set(aggregate.districtsByState[s] || []));
+    aggregate.districtsByState[s] = d.sort((a,b) => a.localeCompare(b));
+  });
+
+  // Cache result if meaningful
+  if (aggregate.states.length) {
+    indiaCache = aggregate;
+    try { localStorage.setItem(INDIA_DATA_CACHE_KEY, JSON.stringify(indiaCache)); } catch {}
+    return indiaCache;
   }
   return null;
 }
