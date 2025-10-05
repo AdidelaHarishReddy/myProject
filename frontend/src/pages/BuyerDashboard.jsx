@@ -91,23 +91,69 @@ const BuyerDashboard = () => {
       (error) => {
         console.error('Geolocation error:', error);
         let errorMessage = '❌ Error getting current location. ';
+        let showManualOption = false;
         
         switch(error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage += 'Location access denied. Please allow location access in your browser settings.';
+            errorMessage += 'Location access denied. This could be due to:\n';
+            errorMessage += '• Browser location permission is blocked\n';
+            errorMessage += '• Site is not trusted for location access\n';
+            errorMessage += '• HTTP protocol restrictions (try HTTPS)\n\n';
+            errorMessage += '💡 Solutions:\n';
+            errorMessage += '1. Click the location icon in your browser address bar\n';
+            errorMessage += '2. Select "Allow" for location access\n';
+            errorMessage += '3. Try the "Enter Location Manually" button below\n';
+            errorMessage += '4. Use HTTPS instead of HTTP if possible';
+            showManualOption = true;
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage += 'Location information unavailable.';
+            errorMessage += 'Location information unavailable. This could be due to:\n';
+            errorMessage += '• GPS is turned off\n';
+            errorMessage += '• Poor network connection\n';
+            errorMessage += '• Location services disabled\n\n';
+            errorMessage += '💡 Try the "Enter Location Manually" button below';
+            showManualOption = true;
             break;
           case error.TIMEOUT:
-            errorMessage += 'Location request timed out.';
+            errorMessage += 'Location request timed out. This could be due to:\n';
+            errorMessage += '• Slow network connection\n';
+            errorMessage += '• GPS signal issues\n\n';
+            errorMessage += '💡 Try again or use the "Enter Location Manually" button below';
+            showManualOption = true;
             break;
           default:
-            errorMessage += 'Unknown error occurred.';
+            errorMessage += 'Unknown error occurred. Please try the "Enter Location Manually" button below.';
+            showManualOption = true;
             break;
         }
         
         alert(errorMessage);
+        
+        // Show manual input option if geolocation failed
+        if (showManualOption) {
+          setTimeout(() => {
+            const useManual = confirm('Would you like to enter your location manually instead?');
+            if (useManual) {
+              const lat = prompt('Enter your latitude (e.g., 19.0760 for Mumbai):');
+              const lng = prompt('Enter your longitude (e.g., 72.8777 for Mumbai):');
+              if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                setFilters(prev => ({
+                  ...prev,
+                  userLatitude: parseFloat(lat).toFixed(6),
+                  userLongitude: parseFloat(lng).toFixed(6)
+                }));
+                fetchProperties({
+                  ...filters,
+                  userLatitude: parseFloat(lat).toFixed(6),
+                  userLongitude: parseFloat(lng).toFixed(6)
+                });
+                alert(`✅ Location set: ${lat}, ${lng}`);
+              } else if (lat || lng) {
+                alert('❌ Invalid coordinates. Please enter valid latitude and longitude numbers.');
+              }
+            }
+          }, 1000);
+        }
       },
       {
         enableHighAccuracy: false,
@@ -430,8 +476,41 @@ const BuyerDashboard = () => {
                 <Button
                   variant="outlined"
                   onClick={() => {
-                    const lat = prompt('Enter your latitude (e.g., 19.0760):');
-                    const lng = prompt('Enter your longitude (e.g., 72.8777):');
+                    // Show common cities for quick selection
+                    const commonCities = [
+                      { name: 'Mumbai, India', lat: 19.0760, lng: 72.8777 },
+                      { name: 'Delhi, India', lat: 28.7041, lng: 77.1025 },
+                      { name: 'Bangalore, India', lat: 12.9716, lng: 77.5946 },
+                      { name: 'Chennai, India', lat: 13.0827, lng: 80.2707 },
+                      { name: 'Kolkata, India', lat: 22.5726, lng: 88.3639 },
+                      { name: 'Pune, India', lat: 18.5204, lng: 73.8567 },
+                      { name: 'Hyderabad, India', lat: 17.3850, lng: 78.4867 },
+                      { name: 'Ahmedabad, India', lat: 23.0225, lng: 72.5714 },
+                      { name: 'Custom Location', lat: null, lng: null }
+                    ];
+                    
+                    let cityChoice = 'Custom Location';
+                    let lat, lng;
+                    
+                    // Try to show a selection dialog
+                    const cityList = commonCities.map((city, index) => `${index + 1}. ${city.name}`).join('\n');
+                    const choice = prompt(`Select a city or enter custom coordinates:\n\n${cityList}\n\nEnter number (1-${commonCities.length}) or press Cancel for custom input:`);
+                    
+                    if (choice && !isNaN(choice) && parseInt(choice) >= 1 && parseInt(choice) <= commonCities.length) {
+                      const selectedCity = commonCities[parseInt(choice) - 1];
+                      if (selectedCity.lat !== null) {
+                        lat = selectedCity.lat.toString();
+                        lng = selectedCity.lng.toString();
+                        cityChoice = selectedCity.name;
+                      }
+                    }
+                    
+                    // If custom location or no selection, ask for coordinates
+                    if (!lat || !lng) {
+                      lat = prompt('Enter your latitude (e.g., 19.0760 for Mumbai):');
+                      lng = prompt('Enter your longitude (e.g., 72.8777 for Mumbai):');
+                    }
+                    
                     if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
                       setFilters(prev => ({
                         ...prev,
@@ -443,7 +522,7 @@ const BuyerDashboard = () => {
                         userLatitude: parseFloat(lat).toFixed(6),
                         userLongitude: parseFloat(lng).toFixed(6)
                       });
-                      alert(`✅ Location set: ${lat}, ${lng}`);
+                      alert(`✅ Location set: ${cityChoice} (${lat}, ${lng})`);
                     } else if (lat || lng) {
                       alert('❌ Invalid coordinates. Please enter valid latitude and longitude numbers.');
                     }
@@ -484,6 +563,34 @@ const BuyerDashboard = () => {
                   }}
                 >
                   🧪 Test API
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setFilters(prev => ({
+                      ...prev,
+                      userLatitude: '',
+                      userLongitude: '',
+                      maxDistance: 50
+                    }));
+                    fetchProperties({
+                      ...filters,
+                      userLatitude: '',
+                      userLongitude: '',
+                      maxDistance: 50
+                    });
+                    alert('✅ Location filter cleared. Showing all properties.');
+                  }}
+                  sx={{ 
+                    borderColor: '#9e9e9e',
+                    color: '#9e9e9e',
+                    '&:hover': { 
+                      borderColor: '#757575',
+                      backgroundColor: 'rgba(158, 158, 158, 0.04)'
+                    }
+                  }}
+                >
+                  🗑️ Clear Location
                 </Button>
                 
                 <Paper elevation={1} sx={{ p: 1.5, textAlign: 'center', minWidth: 80 }}>
