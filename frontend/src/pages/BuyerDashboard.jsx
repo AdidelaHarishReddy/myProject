@@ -22,7 +22,10 @@ const BuyerDashboard = () => {
     property_type: '',
     priceRange: [0, 10000000],
     areaRange: [0, 10000],
-    sortBy: 'newest'
+    sortBy: 'newest',
+    userLatitude: '',
+    userLongitude: '',
+    maxDistance: 50
   });
   
   // Ensure filters is never undefined
@@ -36,6 +39,72 @@ const BuyerDashboard = () => {
   const [isFiltering, setIsFiltering] = useState(false);
   
   const navigate = useNavigate();
+
+  // Function to get user's current location
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('❌ Geolocation is not supported by this browser.');
+      return;
+    }
+
+    const isSecure = window.location.protocol === 'https:' || 
+                     window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1' ||
+                     window.location.hostname.includes('192.168.') ||
+                     window.location.hostname.includes('10.') ||
+                     process.env.NODE_ENV === 'development';
+
+    if (!isSecure) {
+      alert('⚠️ Location access requires HTTPS or localhost.');
+      return;
+    }
+
+    alert('📍 Getting your current location... Please allow location access when prompted.');
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setFilters(prev => ({
+          ...prev,
+          userLatitude: latitude.toFixed(6),
+          userLongitude: longitude.toFixed(6)
+        }));
+        alert(`✅ Location found: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        // Automatically fetch properties with location filter
+        fetchProperties({
+          ...filters,
+          userLatitude: latitude.toFixed(6),
+          userLongitude: longitude.toFixed(6)
+        });
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        let errorMessage = '❌ Error getting current location. ';
+        
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Location access denied. Please allow location access in your browser settings.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out.';
+            break;
+          default:
+            errorMessage += 'Unknown error occurred.';
+            break;
+        }
+        
+        alert(errorMessage);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 30000,
+        maximumAge: 300000
+      }
+    );
+  };
 
   useEffect(() => {
     fetchProperties({}); // Pass empty object to avoid undefined filters
@@ -75,38 +144,9 @@ const BuyerDashboard = () => {
       setLoading(true);
     }
     
-    // Build query parameters
-    const params = new URLSearchParams();
+    console.log('Fetching properties with filters:', safeFilters);
     
-    if (safeFilters.property_type && safeFilters.property_type !== '') {
-      params.append('property_type', safeFilters.property_type);
-    }
-    
-    if (safePriceRange && safePriceRange.length === 2) {
-      if (safePriceRange[0] > 0) {
-        params.append('price__gte', safePriceRange[0]);
-      }
-      if (safePriceRange[1] < 10000000) {
-        params.append('price__lte', safePriceRange[1]);
-      }
-    }
-    
-    if (safeAreaRange && safeAreaRange.length === 2) {
-      if (safeAreaRange[0] > 0) {
-        params.append('area__gte', safeAreaRange[0]);
-      }
-      if (safeAreaRange[1] < 10000) {
-        params.append('area__lte', safeAreaRange[1]);
-      }
-    }
-    
-    if (safeSortBy && safeSortBy !== 'newest') {
-      params.append('sort_by', safeSortBy);
-    }
-    
-    console.log('Filter params:', params.toString());
-    
-    propertyAPI.getProperties(params.toString())
+    propertyAPI.getProperties(safeFilters)
       .then(response => {
         console.log('Properties response:', response.data);
         
@@ -342,8 +382,23 @@ const BuyerDashboard = () => {
                 Properties Near You
               </Typography>
               
-              {/* Properties Count */}
-              <Box sx={{ display: 'flex', gap: 2 }}>
+              {/* Properties Count and Location Filter */}
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <Button
+                  variant="outlined"
+                  onClick={getCurrentLocation}
+                  sx={{ 
+                    borderColor: '#4267B2',
+                    color: '#4267B2',
+                    '&:hover': { 
+                      borderColor: '#365899',
+                      backgroundColor: 'rgba(66, 103, 178, 0.04)'
+                    }
+                  }}
+                >
+                  📍 Find Properties Near Me
+                </Button>
+                
                 <Paper elevation={1} sx={{ p: 1.5, textAlign: 'center', minWidth: 80 }}>
                   <Typography variant="h6" sx={{ color: '#4267B2', fontWeight: 'bold' }}>
                     {properties.length}

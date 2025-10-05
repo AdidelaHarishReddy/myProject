@@ -44,6 +44,12 @@ const getProperties = (filters, token) => {
         params.append('price__lte', filters[key][1]);
       } else if (key === 'sortBy') {
         params.append('sort_by', filters[key]);
+      } else if (key === 'userLatitude') {
+        params.append('user_latitude', filters[key]);
+      } else if (key === 'userLongitude') {
+        params.append('user_longitude', filters[key]);
+      } else if (key === 'maxDistance') {
+        params.append('max_distance', filters[key]);
       } else {
         params.append(key, filters[key]);
       }

@@ -729,6 +729,14 @@ const SellerDashboard = () => {
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button 
             variant="outlined"
+            onClick={fetchProperties}
+            disabled={loading}
+            sx={{ borderColor: '#4267B2', color: '#4267B2', '&:hover': { borderColor: '#365899', backgroundColor: 'rgba(66, 103, 178, 0.04)' } }}
+          >
+            🔄 Refresh
+          </Button>
+          <Button 
+            variant="outlined"
             onClick={() => setOpenProfile(true)}
             sx={{ borderColor: '#4267B2', color: '#4267B2', '&:hover': { borderColor: '#365899', backgroundColor: 'rgba(66, 103, 178, 0.04)' } }}
           >
