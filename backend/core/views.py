@@ -229,14 +229,14 @@ class PropertyViewSet(viewsets.ModelViewSet):
             # Add distance-based filtering if user location is provided
             user_lat = self.request.query_params.get('user_latitude')
             user_lng = self.request.query_params.get('user_longitude')
-            max_distance = self.request.query_params.get('max_distance', 50)  # Default 50km
+            max_distance = self.request.query_params.get('max_distance', 500)  # Default 500km for broader results
             
             if user_lat and user_lng and GIS_AVAILABLE:
                 try:
                     user_point = Point(float(user_lng), float(user_lat), srid=4326)
                     queryset = queryset.annotate(
-                        distance=DistanceFunc('coordinates', user_point)
-                    ).filter(distance__lte=Distance(km=max_distance))
+                        distance=DistanceFunc('geo_location', user_point)
+                    ).filter(distance__lte=Distance(km=max_distance)).order_by('distance')
                     print(f"Applied distance filter: {max_distance}km from ({user_lat}, {user_lng})")
                 except (ValueError, TypeError) as e:
                     print(f"Invalid coordinates provided: {e}")
