@@ -47,16 +47,27 @@ const BuyerDashboard = () => {
       return;
     }
 
+    // Allow HTTP in development environment
     const isSecure = window.location.protocol === 'https:' || 
                      window.location.hostname === 'localhost' || 
                      window.location.hostname === '127.0.0.1' ||
                      window.location.hostname.includes('192.168.') ||
                      window.location.hostname.includes('10.') ||
-                     process.env.NODE_ENV === 'development';
+                     window.location.hostname.includes('13.') || // Allow AWS IPs
+                     process.env.NODE_ENV === 'development' ||
+                     process.env.REACT_APP_ENV === 'development' ||
+                     window.location.hostname.includes('dev') ||
+                     window.location.hostname.includes('test');
 
     if (!isSecure) {
-      alert('⚠️ Location access requires HTTPS or localhost.');
-      return;
+      // In development, try to proceed anyway with a warning
+      if (process.env.NODE_ENV === 'development' || process.env.REACT_APP_ENV === 'development') {
+        console.warn('⚠️ Geolocation may not work on HTTP in some browsers. Trying anyway...');
+        // Continue with the geolocation request
+      } else {
+        alert('⚠️ Location access requires HTTPS or localhost. For development, please use localhost or enable HTTPS.');
+        return;
+      }
     }
 
     alert('📍 Getting your current location... Please allow location access when prompted.');
@@ -415,6 +426,38 @@ const BuyerDashboard = () => {
                   }}
                 >
                   📍 Find Properties Near Me
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    const lat = prompt('Enter your latitude (e.g., 19.0760):');
+                    const lng = prompt('Enter your longitude (e.g., 72.8777):');
+                    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                      setFilters(prev => ({
+                        ...prev,
+                        userLatitude: parseFloat(lat).toFixed(6),
+                        userLongitude: parseFloat(lng).toFixed(6)
+                      }));
+                      fetchProperties({
+                        ...filters,
+                        userLatitude: parseFloat(lat).toFixed(6),
+                        userLongitude: parseFloat(lng).toFixed(6)
+                      });
+                      alert(`✅ Location set: ${lat}, ${lng}`);
+                    } else if (lat || lng) {
+                      alert('❌ Invalid coordinates. Please enter valid latitude and longitude numbers.');
+                    }
+                  }}
+                  sx={{ 
+                    borderColor: '#ff9800',
+                    color: '#ff9800',
+                    '&:hover': { 
+                      borderColor: '#f57c00',
+                      backgroundColor: 'rgba(255, 152, 0, 0.04)'
+                    }
+                  }}
+                >
+                  📍 Enter Location Manually
                 </Button>
                 <Button
                   variant="outlined"

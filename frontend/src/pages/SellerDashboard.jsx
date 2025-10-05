@@ -368,7 +368,11 @@ const SellerDashboard = () => {
                      window.location.hostname === '127.0.0.1' ||
                      window.location.hostname.includes('192.168.') || // Allow local network
                      window.location.hostname.includes('10.') || // Allow local network
-                     process.env.NODE_ENV === 'development'; // Allow in development mode
+                     window.location.hostname.includes('13.') || // Allow AWS IPs
+                     process.env.NODE_ENV === 'development' || // Allow in development mode
+                     process.env.REACT_APP_ENV === 'development' ||
+                     window.location.hostname.includes('dev') ||
+                     window.location.hostname.includes('test');
     
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
@@ -378,8 +382,14 @@ const SellerDashboard = () => {
     }
 
     if (!isSecure) {
-      alert('⚠️ Location access requires HTTPS or localhost. Please use the "Get from Location" button or enter coordinates manually.');
-      return;
+      // In development, try to proceed anyway with a warning
+      if (process.env.NODE_ENV === 'development' || process.env.REACT_APP_ENV === 'development') {
+        console.warn('⚠️ Geolocation may not work on HTTP in some browsers. Trying anyway...');
+        // Continue with the geolocation request
+      } else {
+        alert('⚠️ Location access requires HTTPS or localhost. Please use the "Get from Location" button or enter coordinates manually.');
+        return;
+      }
     }
 
     // Show loading state with mobile-specific instructions
