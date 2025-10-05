@@ -311,43 +311,77 @@ const SellerDashboard = () => {
 
   const getCoordinatesFromLocation = async () => {
     if (!newProperty.state || !newProperty.district || !newProperty.sub_district || !newProperty.village) {
-      alert('Please select location fields first');
+      alert('⚠️ Please select all location fields (State, District, Taluka/Mandal, Village) first');
       return;
     }
 
     const locationString = `${newProperty.village}, ${newProperty.sub_district}, ${newProperty.district}, ${newProperty.state}, India`;
     
     try {
+      alert('🔍 Searching for coordinates... Please wait.');
+      
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationString)}&limit=1`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationString)}&limit=3&countrycodes=in&addressdetails=1`
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
       if (data && data.length > 0) {
-        const { lat, lon } = data[0];
+        // Try to find the best match
+        let bestMatch = data[0];
+        
+        // Look for exact matches first
+        for (const result of data) {
+          const address = result.display_name.toLowerCase();
+          if (address.includes(newProperty.village.toLowerCase()) && 
+              address.includes(newProperty.district.toLowerCase()) &&
+              address.includes(newProperty.state.toLowerCase())) {
+            bestMatch = result;
+            break;
+          }
+        }
+        
+        const { lat, lon } = bestMatch;
         setNewProperty(prev => ({
           ...prev,
           latitude: parseFloat(lat).toFixed(6),
           longitude: parseFloat(lon).toFixed(6)
         }));
-        alert(`Coordinates found: ${lat}, ${lon}`);
+        alert(`✅ Coordinates found: ${lat}, ${lon}\nLocation: ${bestMatch.display_name}`);
       } else {
-        alert('Could not find coordinates for this location. Please enter manually.');
+        alert('❌ Could not find coordinates for this location. Please try:\n• Check if the location name is correct\n• Use the "Select on Map" button\n• Enter coordinates manually');
       }
     } catch (error) {
       console.error('Error getting coordinates:', error);
-      alert('Error getting coordinates. Please enter manually.');
+      alert('❌ Error getting coordinates. This could be due to:\n• Network connection issues\n• Location service temporarily unavailable\n• Invalid location name\n\nPlease try the "Select on Map" button or enter coordinates manually.');
     }
   };
 
   const getCurrentLocation = () => {
+    // Check if we're on HTTPS or localhost
+    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     if (!navigator.geolocation) {
-      alert('❌ Geolocation is not supported by this browser. Please use HTTPS or enter coordinates manually.');
+      alert('❌ Geolocation is not supported by this browser. Please enter coordinates manually.');
       return;
     }
 
-    // Show loading state
-    alert('📍 Getting your current location... Please allow location access when prompted.');
+    if (!isSecure) {
+      alert('⚠️ Location access requires HTTPS. Please use the "Get from Location" button or enter coordinates manually.');
+      return;
+    }
+
+    // Show loading state with mobile-specific instructions
+    let loadingMessage = '📍 Getting your current location... Please allow location access when prompted.';
+    if (isMobile) {
+      loadingMessage += '\n\n📱 On mobile: Make sure location services are enabled in your device settings.';
+    }
+    alert(loadingMessage);
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -365,33 +399,58 @@ const SellerDashboard = () => {
         
         switch(error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage += 'Location access denied. Please allow location access in your browser settings and try again.';
+            errorMessage += 'Location access denied. Please:\n';
+            if (isMobile) {
+              errorMessage += '📱 Mobile users:\n';
+              errorMessage += '1. Go to your device Settings > Privacy > Location Services\n';
+              errorMessage += '2. Make sure Location Services is ON\n';
+              errorMessage += '3. Check if your browser has location permission\n';
+              errorMessage += '4. Try refreshing the page\n';
+            } else {
+              errorMessage += '💻 Desktop users:\n';
+              errorMessage += '1. Click the location icon in your browser address bar\n';
+              errorMessage += '2. Select "Allow" for location access\n';
+              errorMessage += '3. Refresh the page and try again\n';
+            }
+            errorMessage += '\nOr use the "Get from Location" button instead.';
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage += 'Location information unavailable. Please check your GPS/network connection and try again.';
+            errorMessage += 'Location information unavailable. This could be due to:\n';
+            errorMessage += '• GPS is turned off\n';
+            errorMessage += '• Poor network connection\n';
+            errorMessage += '• Location services disabled\n';
+            if (isMobile) {
+              errorMessage += '• Mobile: Check if location permission is granted to your browser\n';
+            }
+            errorMessage += '\nPlease try the "Get from Location" button or enter coordinates manually.';
             break;
           case error.TIMEOUT:
-            errorMessage += 'Location request timed out. Please try again or enter coordinates manually.';
+            errorMessage += 'Location request timed out. Please try again or use the "Get from Location" button.';
             break;
           default:
-            errorMessage += 'Unknown error occurred. Please enter coordinates manually.';
+            errorMessage += 'Unknown error occurred. Please use the "Get from Location" button or enter coordinates manually.';
             break;
         }
         
         alert(errorMessage);
       },
       {
-        enableHighAccuracy: true,
-        timeout: 20000, // Increased timeout
+        enableHighAccuracy: false, // Changed to false for better compatibility
+        timeout: 30000, // Increased timeout to 30 seconds
         maximumAge: 300000 // 5 minutes
       }
     );
   };
 
   const openMapSelector = () => {
-    const mapUrl = `https://www.openstreetmap.org/?mlat=${newProperty.latitude || 19.0760}&mlon=${newProperty.longitude || 72.8777}&zoom=15`;
-    window.open(mapUrl, '_blank', 'width=800,height=600');
-    alert('Map opened in new window. Please copy the coordinates from the map and enter them manually.');
+    // Use India center if no coordinates are set
+    const lat = newProperty.latitude || 20.5937;
+    const lon = newProperty.longitude || 78.9629;
+    
+    const mapUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}&zoom=10`;
+    window.open(mapUrl, '_blank', 'width=1000,height=700');
+    
+    alert('🗺️ Map opened in new window.\n\nTo get coordinates:\n1. Navigate to your property location on the map\n2. Right-click on the exact location\n3. Select "What\'s here?" or copy the coordinates from the URL\n4. Enter the coordinates in the form below');
   };
 
   const searchLocation = async (query) => {
@@ -402,8 +461,13 @@ const SellerDashboard = () => {
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=in`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=in&addressdetails=1`
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       setSearchResults(data);
     } catch (error) {
@@ -1247,6 +1311,11 @@ const SellerDashboard = () => {
                     size="small"
                     onClick={getCoordinatesFromLocation}
                     disabled={!newProperty.state || !newProperty.district || !newProperty.sub_district || !newProperty.village}
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      py: 0.5,
+                      px: 1
+                    }}
                   >
                     📍 Get from Location
                   </Button>
@@ -1254,17 +1323,31 @@ const SellerDashboard = () => {
                     variant="outlined"
                     size="small"
                     onClick={getCurrentLocation}
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      py: 0.5,
+                      px: 1
+                    }}
                   >
-                    📱 Use Current Location
+                    📱 Current Location
                   </Button>
                   <Button
                     variant="outlined"
                     size="small"
                     onClick={openMapSelector}
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      py: 0.5,
+                      px: 1
+                    }}
                   >
                     🗺️ Select on Map
                   </Button>
                 </Box>
+                
+                <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mb: 1 }}>
+                  💡 Tip: If "Current Location" doesn't work, try "Get from Location" or "Select on Map"
+                </Typography>
               </Box>
               
               <Grid container spacing={2}>
