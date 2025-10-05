@@ -210,16 +210,21 @@ class PropertyViewSet(viewsets.ModelViewSet):
             print(f"PropertyViewSet query params: {self.request.query_params}")
             
             queryset = super().get_queryset()
-            print(f"Base queryset: {queryset}")
+            print(f"Base queryset count: {queryset.count()}")
             
             # Filter by user if 'my_properties' parameter is present
             if self.request.query_params.get('my_properties') == 'true' and self.request.user.is_authenticated:
                 queryset = queryset.filter(seller=self.request.user)
-                print(f"Filtered to user properties: {queryset}")
+                print(f"Filtered to user properties: {queryset.count()}")
             
             # Remove the conflicting annotation since Property model already has shortlisted_by_count property
             queryset = queryset.select_related('location', 'seller').prefetch_related('images')
-            print(f"After select_related: {queryset}")
+            print(f"After select_related count: {queryset.count()}")
+            
+            # Debug: Show some sample properties
+            sample_properties = list(queryset[:3])
+            for prop in sample_properties:
+                print(f"Sample property: ID={prop.id}, Title={prop.title}, Seller={prop.seller.username if prop.seller else 'None'}")
             
             # Add distance-based filtering if user location is provided
             user_lat = self.request.query_params.get('user_latitude')
@@ -435,7 +440,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
         try:
             # Test basic queryset
             queryset = Property.objects.all()[:5]  # Get first 5 properties
-            print(f"Test queryset: {queryset}")
+            print(f"Test queryset count: {queryset.count()}")
             
             # Test serializer
             serializer = PropertySerializer(queryset, many=True, context={'request': request})
@@ -447,7 +452,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
             
             return Response({
                 'message': 'Test successful',
-                'count': len(data),
+                'total_properties_in_db': Property.objects.count(),
+                'test_queryset_count': queryset.count(),
+                'serialized_count': len(data),
                 'sample_data': data[0] if data else None
             })
         except Exception as e:

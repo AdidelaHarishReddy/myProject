@@ -32,10 +32,12 @@ api.interceptors.request.use(
 
 
 const getProperties = (filters, token) => {
+  console.log('getProperties called with filters:', filters, 'token:', token ? 'present' : 'none');
+  
   const params = new URLSearchParams();
   
   Object.keys(filters).forEach(key => {
-    if (filters[key] !== '' && filters[key] !== null) {
+    if (filters[key] !== '' && filters[key] !== null && filters[key] !== undefined) {
       if (key === 'areaRange') {
         params.append('area__gte', filters[key][0]);
         params.append('area__lte', filters[key][1]);
@@ -55,6 +57,9 @@ const getProperties = (filters, token) => {
       }
     }
   });
+
+  console.log('API URL:', API_URL);
+  console.log('Query params:', params.toString());
 
   const config = {};
   if (token) {

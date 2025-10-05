@@ -107,6 +107,7 @@ const BuyerDashboard = () => {
   };
 
   useEffect(() => {
+    console.log('BuyerDashboard mounted, fetching properties...');
     fetchProperties({}); // Pass empty object to avoid undefined filters
     fetchShortlistedCount();
   }, []);
@@ -129,13 +130,14 @@ const BuyerDashboard = () => {
     const safeAreaRange = safeFilters.areaRange || [0, 10000];
     const safeSortBy = safeFilters.sortBy || 'newest';
     
-    // Check if any filters are applied
-    const hasFilters = safeFilters.property_type || 
-                      safePriceRange[0] > 0 || 
-                      safePriceRange[1] < 10000000 ||
-                      safeAreaRange[0] > 0 || 
-                      safeAreaRange[1] < 10000 ||
-                      safeSortBy !== 'newest';
+    // Check if any filters are applied (excluding default values)
+    const hasFilters = (safeFilters.property_type && safeFilters.property_type !== '') || 
+                      (safePriceRange[0] > 0) || 
+                      (safePriceRange[1] < 10000000) ||
+                      (safeAreaRange[0] > 0) || 
+                      (safeAreaRange[1] < 10000) ||
+                      (safeSortBy && safeSortBy !== 'newest') ||
+                      (safeFilters.userLatitude && safeFilters.userLongitude);
     
     // Set appropriate loading state
     if (hasFilters) {
@@ -152,12 +154,20 @@ const BuyerDashboard = () => {
         
         // Extract properties from the response
         let propertiesData;
-        if (hasFilters) {
-          // For filtered results, the response structure might be different
-          propertiesData = response.data.results || response.data || [];
+        console.log('Response structure:', response.data);
+        
+        // Handle different response structures
+        if (Array.isArray(response.data)) {
+          propertiesData = response.data;
+        } else if (response.data && response.data.results) {
+          propertiesData = response.data.results;
+        } else if (response.data && response.data.properties) {
+          propertiesData = response.data.properties;
         } else {
-          propertiesData = response.data || [];
+          propertiesData = [];
         }
+        
+        console.log('Extracted properties:', propertiesData.length, 'properties');
         
         // Ensure each property has the required structure
         const formattedProperties = propertiesData.map(property => {
@@ -189,8 +199,16 @@ const BuyerDashboard = () => {
       })
       .catch(error => {
         console.error('Error fetching properties:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          statusText: error.response?.statusText
+        });
         setLoading(false);
         setIsFiltering(false);
+        // Set empty array to prevent errors
+        setProperties([]);
       });
   };
 
@@ -397,6 +415,32 @@ const BuyerDashboard = () => {
                   }}
                 >
                   📍 Find Properties Near Me
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    console.log('Testing API...');
+                    fetch(`${window._env_?.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/properties/test/`)
+                      .then(response => response.json())
+                      .then(data => {
+                        console.log('API Test Response:', data);
+                        alert(`API Test: ${data.message}\nTotal Properties: ${data.total_properties_in_db}\nSerialized: ${data.serialized_count}`);
+                      })
+                      .catch(error => {
+                        console.error('API Test Error:', error);
+                        alert('API Test Failed: ' + error.message);
+                      });
+                  }}
+                  sx={{ 
+                    borderColor: '#4caf50',
+                    color: '#4caf50',
+                    '&:hover': { 
+                      borderColor: '#388e3c',
+                      backgroundColor: 'rgba(76, 175, 80, 0.04)'
+                    }
+                  }}
+                >
+                  🧪 Test API
                 </Button>
                 
                 <Paper elevation={1} sx={{ p: 1.5, textAlign: 'center', minWidth: 80 }}>
