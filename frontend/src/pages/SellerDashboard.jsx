@@ -362,8 +362,14 @@ const SellerDashboard = () => {
   };
 
   const getCurrentLocation = () => {
-    // Check if we're on HTTPS or localhost
-    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    // Check if we're on HTTPS or localhost (allow HTTP for development)
+    const isSecure = window.location.protocol === 'https:' || 
+                     window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1' ||
+                     window.location.hostname.includes('192.168.') || // Allow local network
+                     window.location.hostname.includes('10.') || // Allow local network
+                     process.env.NODE_ENV === 'development'; // Allow in development mode
+    
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (!navigator.geolocation) {
@@ -372,7 +378,7 @@ const SellerDashboard = () => {
     }
 
     if (!isSecure) {
-      alert('⚠️ Location access requires HTTPS. Please use the "Get from Location" button or enter coordinates manually.');
+      alert('⚠️ Location access requires HTTPS or localhost. Please use the "Get from Location" button or enter coordinates manually.');
       return;
     }
 
@@ -498,9 +504,34 @@ const SellerDashboard = () => {
     }
   };
 
-  const handleSubmit = () => {
+  const validateToken = async (token) => {
+    try {
+      const baseUrl = window._env_?.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${baseUrl}/api/auth/user/`, {
+        headers: { 'Authorization': `Token ${token}` }
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return false;
+    }
+  };
+
+  const handleSubmit = async () => {
     const token = localStorage.getItem('token');
+    console.log('Token from localStorage:', token ? 'Token present' : 'No token');
+    
     if (!token) {
+      alert('❌ You are not logged in. Please login first.');
+      navigate('/login');
+      return;
+    }
+
+    // Validate token before proceeding
+    const isTokenValid = await validateToken(token);
+    if (!isTokenValid) {
+      alert('❌ Your session has expired. Please login again.');
+      localStorage.removeItem('token');
       navigate('/login');
       return;
     }
@@ -559,9 +590,13 @@ const SellerDashboard = () => {
       formData.append('images', image);
     });
 
+    console.log('Submitting property with token:', token);
+    console.log('Form data keys:', Array.from(formData.keys()));
+    
     propertyAPI.createProperty(formData, token)
       .then(response => {
         console.log('Property creation response:', response.data);
+        console.log('Response status:', response.status);
         
         // Ensure the response data has the required structure
         const newPropertyData = {

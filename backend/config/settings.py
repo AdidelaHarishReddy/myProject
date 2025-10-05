@@ -112,11 +112,17 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
     "http://13.204.43.250:3000",
     "http://13.204.43.250:8000",
     "http://13.232.89.137:30001",
     "http://13.232.89.137:30002",
 ]
+
+# Allow HTTP requests for development
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
     'accept',

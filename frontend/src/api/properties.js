@@ -61,11 +61,14 @@ const getProperties = (filters, token) => {
 };
 
 const getPropertyById = (id) => {
-  return api.get(`${API_URL}${id}/`);
+  return api.get(`${id}/`);
 };
 
 const createProperty = (propertyData, token) => {
-  return axios.post(API_URL, propertyData, {
+  console.log('Creating property with token:', token ? 'Token present' : 'No token');
+  console.log('API URL:', API_URL);
+  
+  return api.post('', propertyData, {
     headers: {
       'Authorization': `Token ${token}`,
       'Content-Type': 'multipart/form-data'
@@ -74,13 +77,13 @@ const createProperty = (propertyData, token) => {
 };
 
 const deleteProperty = (propertyId, token) => {
-  return axios.delete(`${API_URL}${propertyId}/`, {
+  return api.delete(`${propertyId}/`, {
     headers: { 'Authorization': `Token ${token}` }
   });
 };
 
 const updateProperty = (propertyId, formData, token) => {
-  return axios.patch(`${API_URL}${propertyId}/`, formData, {
+  return api.patch(`${propertyId}/`, formData, {
     headers: { 
       'Authorization': `Token ${token}`,
       'Content-Type': 'multipart/form-data'
@@ -90,14 +93,14 @@ const updateProperty = (propertyId, formData, token) => {
 
 // New method to get properties created by the current user
 const getMyProperties = (token) => {
-  return axios.get(`${API_URL}my_properties/`, {
+  return api.get('my_properties/', {
     headers: { 'Authorization': `Token ${token}` }
   });
 };
 
 // New method to get a specific property created by the current user
 const getMyPropertyDetail = (propertyId, token) => {
-  return axios.get(`${API_URL}${propertyId}/my_property_detail/`, {
+  return api.get(`${propertyId}/my_property_detail/`, {
     headers: { 'Authorization': `Token ${token}` }
   });
 };
@@ -138,29 +141,29 @@ const getMyPropertiesFiltered = (filters, token) => {
 
   console.log('Filter params:', params.toString());
 
-  return axios.get(API_URL, {
+  return api.get('', {
     params,
     headers: { 'Authorization': `Token ${token}` }
   });
 };
 
 const shortlistProperty = (propertyId, token) => {
-  return axios.post(
-    `${API_URL}${propertyId}/shortlist/`,
+  return api.post(
+    `${propertyId}/shortlist/`,
     {},
     { headers: { 'Authorization': `Token ${token}` } }
   );
 };
 
 const removeShortlist = (propertyId, token) => {
-  return axios.delete(
-    `${API_URL}${propertyId}/remove_shortlist/`,
+  return api.delete(
+    `${propertyId}/remove_shortlist/`,
     { headers: { 'Authorization': `Token ${token}` } }
   );
 };
 
 const getShortlistedProperties = (token) => {
-  return axios.get(`${API_URL}shortlisted/`, {
+  return api.get('shortlisted/', {
     headers: { 'Authorization': `Token ${token}` }
   });
 };
