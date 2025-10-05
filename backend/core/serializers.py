@@ -136,7 +136,11 @@ class PropertyImageSerializer(serializers.ModelSerializer):
         if obj.image:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.image.url)
+                try:
+                    return request.build_absolute_uri(obj.image.url)
+                except Exception as e:
+                    print(f"Error building absolute URI: {e}")
+                    return obj.image.url
             return obj.image.url
         return None
 

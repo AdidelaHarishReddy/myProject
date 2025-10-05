@@ -54,15 +54,20 @@ const Profile = ({ token }) => {
 
   useEffect(() => {
     // Fetch user details
-    axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/auth/user/`, {
+    const baseUrl = window._env_?.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+    axios.get(`${baseUrl}/api/auth/user/`, {
       headers: { Authorization: `Token ${token}` },
     })
       .then(res => {
+        console.log('Profile user data:', res.data);
         setUser(res.data);
         setFirstName(res.data.first_name || '');
         setLastName(res.data.last_name || '');
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+        console.error('Error fetching user profile:', err);
+        alert('❌ Failed to load profile. Please try refreshing the page.');
+      });
 
     // Fetch user's properties and shortlisted properties
     fetchUserProperties();
@@ -130,13 +135,42 @@ const Profile = ({ token }) => {
   };
 
   const handleDeleteProperty = async (propertyId) => {
-    if (window.confirm('Are you sure you want to delete this property?')) {
+    if (window.confirm('⚠️ Are you sure you want to delete this property? This action cannot be undone.')) {
       try {
         await propertyAPI.deleteProperty(propertyId, token);
         fetchUserProperties(); // Refresh the list
+        alert('✅ Property deleted successfully!');
       } catch (error) {
         console.error('Error deleting property:', error);
-        alert('Failed to delete property');
+        
+        let errorMessage = '❌ Error deleting property. ';
+        
+        if (error.response) {
+          const status = error.response.status;
+          const data = error.response.data;
+          
+          if (status === 403) {
+            errorMessage += 'You do not have permission to delete this property.';
+          } else if (status === 404) {
+            errorMessage += 'Property not found. It may have been already deleted.';
+          } else if (status === 401) {
+            errorMessage += 'You are not authorized. Please login again.';
+          } else if (status >= 500) {
+            errorMessage += 'Server error. Please try again later.';
+          } else {
+            errorMessage += `Server error (${status}). Please try again.`;
+            if (data && typeof data === 'object') {
+              const errorDetails = Object.values(data).flat().join(', ');
+              errorMessage += ` Details: ${errorDetails}`;
+            }
+          }
+        } else if (error.request) {
+          errorMessage += 'Network error. Please check your connection and try again.';
+        } else {
+          errorMessage += 'Unexpected error occurred. Please try again.';
+        }
+        
+        alert(errorMessage);
       }
     }
   };
@@ -145,8 +179,30 @@ const Profile = ({ token }) => {
     try {
       await propertyAPI.shortlistProperty(propertyId, token);
       fetchUserProperties(); // Refresh to update shortlist status
+      alert('✅ Property added to shortlist!');
     } catch (error) {
       console.error('Error shortlisting property:', error);
+      
+      let errorMessage = '❌ Error adding to shortlist. ';
+      
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          errorMessage += 'You are not authorized. Please login again.';
+        } else if (status === 404) {
+          errorMessage += 'Property not found.';
+        } else if (status >= 500) {
+          errorMessage += 'Server error. Please try again later.';
+        } else {
+          errorMessage += 'Please try again.';
+        }
+      } else if (error.request) {
+        errorMessage += 'Network error. Please check your connection and try again.';
+      } else {
+        errorMessage += 'Unexpected error occurred. Please try again.';
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -154,8 +210,30 @@ const Profile = ({ token }) => {
     try {
       await propertyAPI.removeShortlist(propertyId, token);
       fetchUserProperties(); // Refresh to update shortlist status
+      alert('✅ Property removed from shortlist!');
     } catch (error) {
       console.error('Error removing from shortlist:', error);
+      
+      let errorMessage = '❌ Error removing from shortlist. ';
+      
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 401) {
+          errorMessage += 'You are not authorized. Please login again.';
+        } else if (status === 404) {
+          errorMessage += 'Property not found.';
+        } else if (status >= 500) {
+          errorMessage += 'Server error. Please try again later.';
+        } else {
+          errorMessage += 'Please try again.';
+        }
+      } else if (error.request) {
+        errorMessage += 'Network error. Please check your connection and try again.';
+      } else {
+        errorMessage += 'Unexpected error occurred. Please try again.';
+      }
+      
+      alert(errorMessage);
     }
   };
 

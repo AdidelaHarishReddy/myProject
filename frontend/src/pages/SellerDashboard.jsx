@@ -149,7 +149,7 @@ const SellerDashboard = () => {
   };
 
   const handleDeleteProperty = (propertyId) => {
-    if (window.confirm('Are you sure you want to delete this property?')) {
+    if (window.confirm('⚠️ Are you sure you want to delete this property? This action cannot be undone.')) {
       const token = localStorage.getItem('token');
       if (!token) {
         navigate('/login');
@@ -162,15 +162,39 @@ const SellerDashboard = () => {
           console.log('Property deleted successfully:', response.data);
           // Remove from local state
           setProperties(properties.filter(p => p.id !== propertyId));
-          alert('Property deleted successfully!');
+          alert('✅ Property deleted successfully!');
         })
         .catch(error => {
           console.error('Error deleting property:', error);
-          if (error.response && error.response.data) {
-            alert(`Error: ${JSON.stringify(error.response.data)}`);
+          
+          let errorMessage = '❌ Error deleting property. ';
+          
+          if (error.response) {
+            const status = error.response.status;
+            const data = error.response.data;
+            
+            if (status === 403) {
+              errorMessage += 'You do not have permission to delete this property.';
+            } else if (status === 404) {
+              errorMessage += 'Property not found. It may have been already deleted.';
+            } else if (status === 401) {
+              errorMessage += 'You are not authorized. Please login again.';
+            } else if (status >= 500) {
+              errorMessage += 'Server error. Please try again later.';
+            } else {
+              errorMessage += `Server error (${status}). Please try again.`;
+              if (data && typeof data === 'object') {
+                const errorDetails = Object.values(data).flat().join(', ');
+                errorMessage += ` Details: ${errorDetails}`;
+              }
+            }
+          } else if (error.request) {
+            errorMessage += 'Network error. Please check your connection and try again.';
           } else {
-            alert('Error deleting property. Please try again.');
+            errorMessage += 'Unexpected error occurred. Please try again.';
           }
+          
+          alert(errorMessage);
         });
     }
   };
@@ -318,12 +342,12 @@ const SellerDashboard = () => {
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by this browser. Please use HTTPS or enter coordinates manually.');
+      alert('❌ Geolocation is not supported by this browser. Please use HTTPS or enter coordinates manually.');
       return;
     }
 
     // Show loading state
-    alert('Getting your current location... Please allow location access when prompted.');
+    alert('📍 Getting your current location... Please allow location access when prompted.');
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -337,14 +361,14 @@ const SellerDashboard = () => {
       },
       (error) => {
         console.error('Geolocation error:', error);
-        let errorMessage = 'Error getting current location. ';
+        let errorMessage = '❌ Error getting current location. ';
         
         switch(error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage += 'Location access denied. Please allow location access and try again.';
+            errorMessage += 'Location access denied. Please allow location access in your browser settings and try again.';
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage += 'Location information unavailable. Please try again or enter coordinates manually.';
+            errorMessage += 'Location information unavailable. Please check your GPS/network connection and try again.';
             break;
           case error.TIMEOUT:
             errorMessage += 'Location request timed out. Please try again or enter coordinates manually.';
@@ -358,7 +382,7 @@ const SellerDashboard = () => {
       },
       {
         enableHighAccuracy: true,
-        timeout: 15000,
+        timeout: 20000, // Increased timeout
         maximumAge: 300000 // 5 minutes
       }
     );
@@ -520,7 +544,7 @@ const SellerDashboard = () => {
         });
         setSelectedImages([]);
         setIsSubmitting(false);
-        alert('Property created successfully!');
+        alert('✅ Property created successfully!');
         
         // Refresh the properties list to get the latest data from the server
         fetchProperties();
@@ -528,11 +552,38 @@ const SellerDashboard = () => {
       .catch(error => {
         console.error('Error creating property:', error);
         setIsSubmitting(false);
-        if (error.response && error.response.data) {
-          alert(`Error: ${JSON.stringify(error.response.data)}`);
+        
+        let errorMessage = '❌ Error creating property. ';
+        
+        if (error.response) {
+          // Server responded with error status
+          const status = error.response.status;
+          const data = error.response.data;
+          
+          if (status === 400) {
+            errorMessage += 'Please check your input data and try again.';
+            if (data && typeof data === 'object') {
+              const errorDetails = Object.values(data).flat().join(', ');
+              errorMessage += ` Details: ${errorDetails}`;
+            }
+          } else if (status === 401) {
+            errorMessage += 'You are not authorized. Please login again.';
+          } else if (status === 413) {
+            errorMessage += 'File too large. Please reduce image sizes.';
+          } else if (status >= 500) {
+            errorMessage += 'Server error. Please try again later.';
+          } else {
+            errorMessage += `Server error (${status}). Please try again.`;
+          }
+        } else if (error.request) {
+          // Network error
+          errorMessage += 'Network error. Please check your connection and try again.';
         } else {
-          alert('Error creating property. Please try again.');
+          // Other error
+          errorMessage += 'Unexpected error occurred. Please try again.';
         }
+        
+        alert(errorMessage);
       });
   };
 
