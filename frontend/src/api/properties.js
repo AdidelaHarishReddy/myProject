@@ -50,13 +50,17 @@ const getProperties = (filters, token) => {
         params.append('user_latitude', filters[key]);
       } else if (key === 'userLongitude') {
         params.append('user_longitude', filters[key]);
-      } else if (key === 'maxDistance') {
-        params.append('max_distance', filters[key]);
       } else {
         params.append(key, filters[key]);
       }
     }
   });
+
+  // Only include max_distance if both coordinates are present
+  if (filters && filters.userLatitude && filters.userLongitude) {
+    const md = filters.maxDistance != null ? filters.maxDistance : 50;
+    params.append('max_distance', md);
+  }
 
   console.log('API URL:', API_URL);
   console.log('Query params:', params.toString());

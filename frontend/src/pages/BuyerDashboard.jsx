@@ -567,18 +567,19 @@ const BuyerDashboard = () => {
                 <Button
                   variant="outlined"
                   onClick={() => {
-                    setFilters(prev => ({
-                      ...prev,
+                    // Reset filters to defaults and clear location
+                    const cleared = {
+                      property_type: '',
+                      priceRange: [0, 10000000],
+                      areaRange: [0, 10000],
+                      sortBy: 'newest',
                       userLatitude: '',
                       userLongitude: '',
                       maxDistance: 50
-                    }));
-                    fetchProperties({
-                      ...filters,
-                      userLatitude: '',
-                      userLongitude: '',
-                      maxDistance: 50
-                    });
+                    };
+                    setFilters(cleared);
+                    // Fetch WITHOUT passing previous filters to avoid stale keys
+                    fetchProperties({});
                     alert('✅ Location filter cleared. Showing all properties.');
                   }}
                   sx={{ 
