@@ -1249,7 +1249,7 @@ const SellerDashboard = () => {
                 <Select
                   value={newProperty.sub_district}
                   onChange={(e) => handleSubDistrictChange(e.target.value)}
-                  label=Taluka/Mandal/sub-dist
+                  label="Taluka/Mandal/sub-dist"
                   disabled={!newProperty.district}
                 >
                   {locationData.subDistricts.map(subDist => (
