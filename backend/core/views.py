@@ -515,7 +515,8 @@ class LocationViewSet(viewsets.ReadOnlyModelViewSet):
                     'Karnataka': ['Bangalore', 'Mysore', 'Mangalore'],
                     'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai'],
                     'Delhi': ['New Delhi', 'North Delhi', 'South Delhi'],
-                    'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara']
+                    'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara'],
+                    'Dadra and Nagar Haveli and Daman and Diu': ['Dadra and Nagar Haveli District', 'Daman District', 'Diu District']
                 }
                 return Response({'districts': sample_districts.get(state, [])})
             
