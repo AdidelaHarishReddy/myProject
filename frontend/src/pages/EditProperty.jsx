@@ -388,7 +388,7 @@ const EditProperty = () => {
                 <Select
                   value={property.sub_district}
                   onChange={(e) => handleSubDistrictChange(e.target.value)}
-                  label="Taluka/Mandal"
+                  label=Taluka/Mandal/sub-dist
                   disabled={!property.district}
                 >
                   {locationData.subDistricts.map(subDist => (
