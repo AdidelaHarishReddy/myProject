@@ -30,6 +30,12 @@ class Command(BaseCommand):
             # Gujarat
             {'state': 'Gujarat', 'district': 'Ahmedabad', 'sub_district': 'Ahmedabad City', 'village': 'Navrangpura', 'pin_code': '380009'},
             {'state': 'Gujarat', 'district': 'Surat', 'sub_district': 'Surat City', 'village': 'Adajan', 'pin_code': '395009'},
+            
+            # Dadra and Nagar Haveli and Daman and Diu
+            {'state': 'Dadra and Nagar Haveli and Daman and Diu', 'district': 'Dadra and Nagar Haveli District', 'sub_district': 'Dadra', 'village': 'Dadra', 'pin_code': '396191'},
+            {'state': 'Dadra and Nagar Haveli and Daman and Diu', 'district': 'Dadra and Nagar Haveli District', 'sub_district': 'Nagar Haveli', 'village': 'Silvassa', 'pin_code': '396230'},
+            {'state': 'Dadra and Nagar Haveli and Daman and Diu', 'district': 'Daman District', 'sub_district': 'Daman', 'village': 'Daman', 'pin_code': '396210'},
+            {'state': 'Dadra and Nagar Haveli and Daman and Diu', 'district': 'Diu District', 'sub_district': 'Diu', 'village': 'Diu', 'pin_code': '362520'},
         ]
         
         created_count = 0

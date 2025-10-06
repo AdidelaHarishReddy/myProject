@@ -284,6 +284,11 @@ const getDistricts = async (state) => {
         ];
         return { districts: Array.from(new Set([...merged, ...cgh])).sort((a,b) => a.localeCompare(b)) };
       }
+      // Ensure Dadra and Nagar Haveli and Daman and Diu (3 districts)
+      if (state === 'Dadra and Nagar Haveli and Daman and Diu') {
+        const dnhdd = ['Dadra and Nagar Haveli District', 'Daman District', 'Diu District'];
+        return { districts: Array.from(new Set([...merged, ...dnhdd])).sort((a,b) => a.localeCompare(b)) };
+      }
       return { districts: merged };
     }
 
@@ -352,6 +357,11 @@ const getDistricts = async (state) => {
           'Raigarh','Raipur','Rajnandgaon','Sarangarh-Bilaigarh','Sukma','Surajpur','Surguja','Sakti'
         ];
         const merged = Array.from(new Set([...(list || []), ...cgh])).sort((a,b) => a.localeCompare(b));
+        return { districts: merged };
+      }
+      if (state === 'Dadra and Nagar Haveli and Daman and Diu') {
+        const dnhdd = ['Dadra and Nagar Haveli District', 'Daman District', 'Diu District'];
+        const merged = Array.from(new Set([...(list || []), ...dnhdd])).sort((a,b) => a.localeCompare(b));
         return { districts: merged };
       }
       return { districts: list.sort((a,b) => a.localeCompare(b)) };
@@ -426,6 +436,10 @@ const getDistricts = async (state) => {
         ];
         return { districts: Array.from(new Set([...(fallback || []), ...cgh])).sort((a,b) => a.localeCompare(b)) };
       }
+      if (state === 'Dadra and Nagar Haveli and Daman and Diu') {
+        const dnhdd = ['Dadra and Nagar Haveli District', 'Daman District', 'Diu District'];
+        return { districts: Array.from(new Set([...(fallback || []), ...dnhdd])).sort((a,b) => a.localeCompare(b)) };
+      }
       return { districts: fallback };
     }
     // Minimal fallback
@@ -435,7 +449,8 @@ const getDistricts = async (state) => {
       'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai'],
       'Delhi': ['New Delhi', 'North Delhi', 'South Delhi'],
       'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara'],
-      'Andaman and Nicobar Islands': ['North and Middle Andaman', 'South Andaman', 'Nicobar']
+      'Andaman and Nicobar Islands': ['North and Middle Andaman', 'South Andaman', 'Nicobar'],
+      'Dadra and Nagar Haveli and Daman and Diu': ['Dadra and Nagar Haveli District', 'Daman District', 'Diu District']
     };
     return { districts: fallbackDistricts[state] || [] };
   }
