@@ -4,7 +4,7 @@ import {
   FormControl, InputLabel, OutlinedInput, InputAdornment, IconButton 
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import authAPI from '../../api/auth';
 import { getDashboardRoute } from '../../utils/dashboardRouting';
@@ -135,10 +135,10 @@ const Login = () => {
       </form>
       
       <Typography align="center">
-        Don't have an account? <Link href="/register" sx={{ color: '#4267B2' }}>Register</Link>
+        Don't have an account? <Link component={RouterLink} to="/register" sx={{ color: '#4267B2' }}>Register</Link>
       </Typography>
       <Typography align="center">
-        <Link href="/forgot-password" sx={{ color: '#4267B2' }}>Forgot password?</Link>
+        <Link component={RouterLink} to="/forgot-password" sx={{ color: '#4267B2' }}>Forgot password?</Link>
       </Typography>
     </Box>
   );

@@ -120,6 +120,14 @@ class OTPSerializer(serializers.Serializer):
 class ResendOTPSerializer(serializers.Serializer):
     phone = serializers.CharField()
 
+class ForgotPasswordSerializer(serializers.Serializer):
+    phone = serializers.CharField()
+
+class ResetPasswordSerializer(serializers.Serializer):
+    phone = serializers.CharField()
+    otp = serializers.CharField()
+    new_password = serializers.CharField(min_length=8)
+
 class IndiaLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = IndiaLocation

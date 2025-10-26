@@ -10,6 +10,7 @@ import theme from './styles/theme';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import OTPVerification from './components/Auth/OTPVerification';
+import ForgotPassword from './components/Auth/ForgotPassword';
 import GeneralDashboard from './pages/GeneralDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
 import SellerDashboard from './pages/SellerDashboard';
@@ -110,6 +111,7 @@ const App = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-otp" element={<OTPVerification />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             
             <Route path="/" element={
               <PrivateRoute>

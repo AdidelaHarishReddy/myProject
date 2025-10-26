@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     PropertyViewSet, LocationViewSet, UserRegisterView, 
     UserLoginView, VerifyOTPView, ResendOTPView, UserProfileView,
-    ShortlistViewSet, TestView
+    ShortlistViewSet, TestView, ForgotPasswordView, ResetPasswordView
 )
 
 router = DefaultRouter()
@@ -18,5 +18,7 @@ urlpatterns = [
     path('auth/login/', UserLoginView.as_view(), name='login'),
     path('auth/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
     path('auth/resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
+    path('auth/forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('auth/reset-password/', ResetPasswordView.as_view(), name='reset-password'),
     path('auth/user/', UserProfileView.as_view(), name='user-profile'),
 ]

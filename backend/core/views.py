@@ -22,7 +22,7 @@ from .serializers import (
     UserSerializer, UserRegisterSerializer, UserLoginSerializer,
     OTPSerializer, ResendOTPSerializer, PropertySerializer,
     PropertyCreateSerializer, IndiaLocationSerializer, ShortlistSerializer,
-    UserProfileUpdateSerializer
+    UserProfileUpdateSerializer, ForgotPasswordSerializer, ResetPasswordSerializer
 )
 from django.contrib.auth import login, logout
 from rest_framework.authtoken.models import Token
@@ -161,6 +161,71 @@ class ResendOTPView(APIView):
 
     def send_otp(self, phone, otp):
         print(f"New OTP for {phone}: {otp}")  # For development only
+
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            phone = serializer.validated_data['phone']
+            
+            try:
+                user = User.objects.get(phone=phone)
+                if not user.is_verified:
+                    return Response({
+                        'message': 'Account not verified. Please verify your account first.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Generate OTP for password reset
+                otp = user.generate_otp()
+                # Send OTP via SMS or Email
+                self.send_otp(user.phone, otp)
+                
+                return Response({
+                    'message': 'Password reset OTP sent successfully',
+                    'phone': user.phone
+                }, status=status.HTTP_200_OK)
+            except User.DoesNotExist:
+                return Response({
+                    'message': 'User not found with this phone number'
+                }, status=status.HTTP_404_NOT_FOUND)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def send_otp(self, phone, otp):
+        print(f"Password reset OTP for {phone}: {otp}")  # For development only
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            phone = serializer.validated_data['phone']
+            otp = serializer.validated_data['otp']
+            new_password = serializer.validated_data['new_password']
+            
+            try:
+                user = User.objects.get(phone=phone)
+                
+                # Verify OTP
+                if user.verify_otp(otp):
+                    # Set new password
+                    user.set_password(new_password)
+                    user.save()
+                    
+                    return Response({
+                        'message': 'Password reset successfully'
+                    }, status=status.HTTP_200_OK)
+                else:
+                    return Response({
+                        'message': 'Invalid OTP or expired'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            except User.DoesNotExist:
+                return Response({
+                    'message': 'User not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]

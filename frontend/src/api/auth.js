@@ -69,11 +69,21 @@ const getCurrentUser = (token) => {
   });
 };
 
+const forgotPassword = (phone) => {
+  return api.post('forgot-password/', { phone });
+};
+
+const resetPassword = (phone, otp, newPassword) => {
+  return api.post('reset-password/', { phone, otp, new_password: newPassword });
+};
+
 export default {
   register,
   login,
   verifyOTP,
   resendOTP,
   logout,
-  getCurrentUser
+  getCurrentUser,
+  forgotPassword,
+  resetPassword
 };
