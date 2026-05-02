@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // Get API URL with fallback
 const getAPIUrl = () => {
-  const baseUrl = window._env_?.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
-  return `${baseUrl}/api/auth/`;
+  const baseUrl = window._env_?.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || '/api/auth/';
+  return `${baseUrl}/`;
 };
 
 const API_URL = getAPIUrl();
