@@ -3,7 +3,7 @@ import axios from 'axios';
 // Get API URL with fallback
 const getAPIUrl = () => {
   const baseUrl = window._env_?.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || '/api/auth/';
-  return `${baseUrl}`;
+  return baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
 };
 
 const API_URL = getAPIUrl();
@@ -20,7 +20,7 @@ const api = axios.create({
 // Add request interceptor for error handling
 api.interceptors.request.use(
   config => {
-    console.log('Making API request to:', config.url);
+    console.log('Making API request to:', config.baseURL + config.url);
     return config;
   },
   error => {
