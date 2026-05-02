@@ -1,10 +1,11 @@
 import axios from 'axios';
 
 // Get API URL with fallback
-const getAPIUrl = () => {
-  const baseUrl = window._env_?.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || '/api/auth/';
-  return `${baseUrl}/`;
-};
+const api = axios.create({
+  baseURL: '/api/auth/',      // ← THIS IS THE ONLY LINE THAT MATTERS
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' }
+});
 
 const API_URL = getAPIUrl();
 
