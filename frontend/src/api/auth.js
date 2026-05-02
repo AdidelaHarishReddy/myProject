@@ -1,89 +1,21 @@
 import axios from 'axios';
 
-// Get API URL with fallback
-const getAPIUrl = () => {
-  const baseUrl = window._env_?.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || '/api/auth/';
-  return baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
-};
-
-const API_URL = getAPIUrl();
-
-// Create Axios instance with base configuration
 const api = axios.create({
-  baseURL: API_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  }
+  baseURL: '/api/auth/',
 });
 
-// Add request interceptor for error handling
-api.interceptors.request.use(
-  config => {
-    console.log('Making API request to:', config.baseURL + config.url);
-    return config;
-  },
-  error => {
-    console.error('Request error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor for error handling
-api.interceptors.response.use(
-  response => {
-    console.log('API response received:', response.status);
-    return response;
-  },
-  error => {
-    console.error('Response error:', error.response?.status, error.message);
-    return Promise.reject(error);
-  }
-);
-
-const register = (userData) => {
-  return api.post('register/', userData);
-};
-
-const login = (credentials) => {
-  return api.post('login/', credentials);
-};
-
-const verifyOTP = (otpData) => {
-  return api.post('verify-otp/', otpData);
-};
-
-const resendOTP = (phone) => {
-  return api.post('resend-otp/', { phone });
-};
-
-const logout = (token) => {
-  return api.post('logout/', {}, {
-    headers: { 'Authorization': `Token ${token}` }
-  });
-};
-
-const getCurrentUser = (token) => {
-  return api.get('user/', {
-    headers: { 'Authorization': `Token ${token}` }
-  });
-};
-
-const forgotPassword = (phone) => {
-  return api.post('forgot-password/', { phone });
-};
-
-const resetPassword = (phone, otp, newPassword) => {
-  return api.post('reset-password/', { phone, otp, new_password: newPassword });
-};
+api.interceptors.request.use(config => {
+  console.log('Calling →', '/api/auth/' + config.url);
+  return config;
+});
 
 export default {
-  register,
-  login,
-  verifyOTP,
-  resendOTP,
-  logout,
-  getCurrentUser,
-  forgotPassword,
-  resetPassword
+  register: (data) => api.post('register/', data),
+  login: (data) => api.post('login/', data),
+  verifyOTP: (data) => api.post('verify-otp/', data),
+  resendOTP: (phone) => api.post('resend-otp/', { phone }),
+  logout: (token) => api.post('logout/', {}, { headers: { Authorization: `Token ${token}` } }),
+  getCurrentUser: (token) => api.get('user/', { headers: { Authorization: `Token ${token}` } }),
+  forgotPassword: (phone) => api.post('forgot-password/', { phone }),
+  resetPassword: (phone, otp, newPassword) => api.post('reset-password/', { phone, otp, new_password: newPassword }),
 };
