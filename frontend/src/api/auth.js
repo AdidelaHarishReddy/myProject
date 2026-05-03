@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api/',
+  baseURL: '/api/auth/',
 });
 
 api.interceptors.request.use(config => {
-  console.log('Calling →', '/api/' + config.url);
+  console.log('Calling →', '/api/auth/' + config.url);
   return config;
 });
 
